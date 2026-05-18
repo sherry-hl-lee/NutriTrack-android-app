@@ -1,8 +1,14 @@
 package com.example.ass2.ui.navigation
 
 import UserRepository
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -12,8 +18,10 @@ import androidx.navigation.navArgument
 import com.example.ass2.data.local.AppDatabase
 import com.example.ass2.data.repository.MealRepository
 import com.example.ass2.data.repository.TargetRepository
-
+import com.example.ass2.reminder.ReminderPreferences
+import com.example.ass2.ui.components.MealReminderAlertDialog
 import com.example.ass2.ui.screens.*
+import kotlinx.coroutines.delay
 import com.example.ass2.viewmodel.*
 
 @Composable
@@ -58,6 +66,30 @@ fun AppNavHost() {
         targetViewModel.setUserEmail(email)
     }
 
+    val reminderPrefs = remember { ReminderPreferences(context) }
+    var showMealAlert by remember { mutableStateOf(false) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && reminderPrefs.consumePendingMealAlert()) {
+                showMealAlert = true
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1000)
+            if (reminderPrefs.hasPendingMealAlert()) {
+                showMealAlert = true
+            }
+        }
+    }
+
+    Box(Modifier.fillMaxSize()) {
     NavHost(navController = navController, startDestination = "login") {
 
         composable("login") {
@@ -123,6 +155,16 @@ fun AppNavHost() {
         ) { backStackEntry ->
             val dayStart = backStackEntry.arguments?.getLong("dayStart") ?: 0L
             MealDayDetailScreen(navController, mealViewModel, dayStart)
+        }
+    }
+
+        if (showMealAlert) {
+            MealReminderAlertDialog(
+                onDismiss = {
+                    showMealAlert = false
+                    reminderPrefs.clearPendingMealAlert()
+                }
+            )
         }
     }
 }

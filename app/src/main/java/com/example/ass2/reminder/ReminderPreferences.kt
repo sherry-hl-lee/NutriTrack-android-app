@@ -37,10 +37,17 @@ class ReminderPreferences(context: Context) {
         prefs.edit().putBoolean(KEY_PENDING_ALERT, pending).apply()
     }
 
+    fun hasPendingMealAlert(): Boolean =
+        prefs.getBoolean(KEY_PENDING_ALERT, false)
+
+    fun clearPendingMealAlert() {
+        prefs.edit().remove(KEY_PENDING_ALERT).apply()
+    }
+
     fun consumePendingMealAlert(): Boolean {
-        val pending = prefs.getBoolean(KEY_PENDING_ALERT, false)
+        val pending = hasPendingMealAlert()
         if (pending) {
-            prefs.edit().remove(KEY_PENDING_ALERT).apply()
+            clearPendingMealAlert()
         }
         return pending
     }
