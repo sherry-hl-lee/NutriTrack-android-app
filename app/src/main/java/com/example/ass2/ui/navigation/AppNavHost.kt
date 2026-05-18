@@ -50,7 +50,7 @@ fun AppNavHost() {
         }
 
         composable("home") {
-            MainLayout(navController) {
+            MainLayout(navController, userViewModel) {
                 HomeScreen(navController, mealViewModel, userViewModel)
             }
         }
@@ -60,14 +60,20 @@ fun AppNavHost() {
         }
 
         composable("history") {
-            MainLayout(navController) {
+            MainLayout(navController, userViewModel) {
                 HistoryScreen(mealViewModel)
             }
         }
 
         composable("profile") {
-            MainLayout(navController) {
+            MainLayout(navController, userViewModel) {
                 ProfileScreen(navController, userViewModel)
+            }
+        }
+
+        composable("profile_summary") {
+            MainLayout(navController, userViewModel) {
+                ProfileSummaryScreen(navController, userViewModel)
             }
         }
 
@@ -84,7 +90,7 @@ fun AppNavHost() {
         }
 
         composable("target") {
-            MainLayout(navController){
+            MainLayout(navController, userViewModel){
                 TargetScreen(navController)
             }
         }

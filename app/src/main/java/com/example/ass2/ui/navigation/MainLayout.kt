@@ -21,10 +21,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.ass2.viewmodel.UserViewModel
 
 @Composable
 fun MainLayout(
     navController: NavController,
+    userViewModel: UserViewModel,
     content: @Composable () -> Unit
 ) {
     val green = Color(0xFF4CAF50)
@@ -32,6 +34,8 @@ fun MainLayout(
 
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
+    val isProfileSection =
+        currentRoute == "profile" || currentRoute == "profile_summary"
 
     Scaffold(
         bottomBar = {
@@ -116,9 +120,11 @@ fun MainLayout(
                 )
 
                 NavigationBarItem(
-                    selected = currentRoute == "profile",
+                    selected = isProfileSection,
                     onClick = {
-                        navController.navigate("profile") {
+                        val route =
+                            if (userViewModel.hasSavedProfile()) "profile_summary" else "profile"
+                        navController.navigate(route) {
                             popUpTo("home")
                             launchSingleTop = true
                         }
@@ -127,13 +133,13 @@ fun MainLayout(
                         Icon(
                             Icons.Default.Person,
                             contentDescription = null,
-                            tint = if (currentRoute == "profile") green else Color.Gray
+                            tint = if (isProfileSection) green else Color.Gray
                         )
                     },
                     label = {
                         Text(
                             "Profile",
-                            color = if (currentRoute == "profile") green else Color.Gray
+                            color = if (isProfileSection) green else Color.Gray
                         )
                     },
                     colors = NavigationBarItemDefaults.colors(

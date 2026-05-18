@@ -22,6 +22,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,6 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.ass2.data.local.User
 import com.example.ass2.viewmodel.UserViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,6 +45,7 @@ fun ProfileScreen(
 ) {
 
     val context = LocalContext.current
+    val currentUser by userViewModel.currentUser.collectAsState()
     var showLogoutDialog by remember { mutableStateOf(false) }
 
     var weight by remember { mutableStateOf("") }
@@ -52,6 +56,27 @@ fun ProfileScreen(
     var expanded by remember { mutableStateOf(false) }
 
     val options = listOf("Male", "Female", "Other")
+
+    fun applyUserToForm(user: User?) {
+        if (user == null) {
+            weight = ""
+            height = ""
+            age = ""
+            gender = "Male"
+        } else {
+            weight = if (user.weight > 0f) user.weight.toString() else ""
+            height = if (user.height > 0f) user.height.toString() else ""
+            age = if (user.age > 0) user.age.toString() else ""
+            gender = user.gender.ifBlank { "Male" }
+        }
+    }
+
+    LaunchedEffect(currentUser) {
+        if (currentUser?.email != null) {
+            userViewModel.refreshCurrentUserFromDb()
+        }
+        applyUserToForm(userViewModel.currentUser.value)
+    }
 
     val green = Color(0xFF4CAF50)
     val lightGreen = Color(0xFFE8F5E9)
@@ -140,6 +165,10 @@ fun ProfileScreen(
         //  Save Button
         Button(
             onClick = {
+                if (currentUser == null) {
+                    Toast.makeText(context, "Please log in to save profile", Toast.LENGTH_SHORT).show()
+                    return@Button
+                }
 
                 val w = weight.toFloatOrNull()
                 val h = height.toFloatOrNull()
@@ -151,7 +180,12 @@ fun ProfileScreen(
                         height = h,
                         age = a,
                         gender = gender
-                    )
+                    ) {
+                        Toast.makeText(context, "Profile saved successfully!", Toast.LENGTH_SHORT).show()
+                        navController.navigate("profile_summary")
+                    }
+                } else {
+                    Toast.makeText(context, "Please fill all fields correctly", Toast.LENGTH_SHORT).show()
                 }
             },
             modifier = Modifier
