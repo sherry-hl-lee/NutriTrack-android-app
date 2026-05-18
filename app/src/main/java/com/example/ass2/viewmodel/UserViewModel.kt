@@ -30,7 +30,7 @@ fun signup(email: String, password: String, onResult: (Boolean) -> Unit) {
 
         if (success) {
             _isGuest.value = false
-            _currentUser.value = User(email = email, password = password)
+            repo.findUserByEmail(email)?.let { setLoggedInUser(it) }
         }
         onResult(success)
     }
@@ -39,7 +39,7 @@ fun login(email: String, password: String, onResult: (LoginResult) -> Unit) {
     viewModelScope.launch {
         val result = repo.login(email, password)
         if (result is LoginResult.Success) {
-            _isGuest.value = false
+            setLoggedInUser(result.user)
         }
         onResult(result)
     }
@@ -52,13 +52,35 @@ fun login(email: String, password: String, onResult: (LoginResult) -> Unit) {
     fun logout() {
         _currentUser.value = null
         _isGuest.value = false
+        _weight.value = 0f
+        _targetCalories.value = 2000
+    }
+
+    private fun setLoggedInUser(user: User) {
+        _isGuest.value = false
+        _currentUser.value = user
+        _weight.value = user.weight
+        _targetCalories.value = if (user.weight > 0f) (user.weight * 30).toInt() else 2000
+    }
+
+    /** User has completed body profile in Room (used to open My Profile vs edit form). */
+    fun hasSavedProfile(): Boolean {
+        val u = _currentUser.value ?: return false
+        return u.weight > 0f && u.height > 0f && u.age > 0
+    }
+
+    /** Reload logged-in user from Room so UI matches DB after tab switches. */
+    suspend fun refreshCurrentUserFromDb() {
+        val email = _currentUser.value?.email ?: return
+        repo.findUserByEmail(email)?.let { setLoggedInUser(it) }
     }
 
     fun updateUserProfile(
         weight: Float,
         height: Float,
         age: Int,
-        gender: String
+        gender: String,
+        onSaved: () -> Unit = {}
     ) {
         viewModelScope.launch {
 
@@ -79,6 +101,7 @@ fun login(email: String, password: String, onResult: (LoginResult) -> Unit) {
             repo.updateUser(updatedUser)
 
             _currentUser.value = updatedUser
+            onSaved()
         }
     }
     val users: StateFlow<List<User>> =
@@ -94,7 +117,7 @@ fun login(email: String, password: String, onResult: (LoginResult) -> Unit) {
         }
     }
     sealed class LoginResult {
-        object Success : LoginResult()
+        data class Success(val user: User) : LoginResult()
         object UserNotFound : LoginResult()
         object WrongPassword : LoginResult()
     }

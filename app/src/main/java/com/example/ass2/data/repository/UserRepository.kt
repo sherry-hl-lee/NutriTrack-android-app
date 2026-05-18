@@ -20,7 +20,11 @@ class UserRepository(private val userDao: UserDao) {
         if (user.password != password) {
             return UserViewModel.LoginResult.WrongPassword
         }
-        return UserViewModel.LoginResult.Success
+        return UserViewModel.LoginResult.Success(user)
+    }
+
+    suspend fun findUserByEmail(email: String): User? {
+        return userDao.findUserByEmail(email)
     }
 
     fun getAllUsers(): Flow<List<User>> {
