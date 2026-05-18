@@ -24,7 +24,10 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -43,6 +46,8 @@ import androidx.navigation.NavController
 import com.example.ass2.data.local.User
 import com.example.ass2.viewmodel.UserViewModel
 
+private const val ADMIN_ACCESS_PASSWORD = "000"
+
 @Composable
 fun UserListScreen(
     navController: NavController,
@@ -52,6 +57,8 @@ fun UserListScreen(
     val users by userViewModel.users.collectAsState()
     var showDialog by remember { mutableStateOf(false) }
     var selectedUser by remember { mutableStateOf<User?>(null) }
+    var isUnlocked by remember { mutableStateOf(false) }
+    var adminPassword by remember { mutableStateOf("") }
     val context = LocalContext.current
     val green = Color(0xFF4CAF50)
     val lightGreen = Color(0xFFE8F5E9)
@@ -70,7 +77,77 @@ fun UserListScreen(
             color = green
         )
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(16.dp))
+
+        if (!isUnlocked) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(6.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        "Admin access required",
+                        fontWeight = FontWeight.Bold,
+                        color = green
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Enter password to view registered users.",
+                        color = Color.Gray,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = adminPassword,
+                        onValueChange = { adminPassword = it },
+                        label = { Text("Password") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Button(
+                        onClick = {
+                            if (adminPassword == ADMIN_ACCESS_PASSWORD) {
+                                isUnlocked = true
+                                adminPassword = ""
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "Incorrect password",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = green)
+                    ) {
+                        Text("Unlock")
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            OutlinedButton(
+                onClick = { navController.popBackStack() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, green)
+            ) {
+                Text("Back", color = green)
+            }
+            return@Column
+        }
 
         Text(
             "Total: ${users.size}",

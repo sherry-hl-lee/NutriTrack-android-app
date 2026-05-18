@@ -10,9 +10,8 @@ interface MealDao {
     @Insert
     suspend fun insertMeal(meal: Meal)
 
-    // ✅ 查询全部
-    @Query("SELECT * FROM meals ORDER BY id DESC")
-    fun getAllMeals(): Flow<List<Meal>>
+    @Query("SELECT * FROM meals WHERE userEmail = :userEmail ORDER BY id DESC")
+    fun getMealsByUserEmail(userEmail: String): Flow<List<Meal>>
 
     // ✅ 删除（可选）
     @Delete

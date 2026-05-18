@@ -2,7 +2,6 @@ package com.example.ass2.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,7 +31,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.navigation.NavController
+import com.example.ass2.util.DateUtils
 import com.example.ass2.viewmodel.MealViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +53,10 @@ fun AddMealScreen(
     val green = Color(0xFF4CAF50)
     val lightGreen = Color(0xFFE8F5E9)
 
-    val dateState = rememberDatePickerState()
+    val dateState = rememberDatePickerState(
+        initialSelectedDateMillis = System.currentTimeMillis()
+    )
+    val selectedDateMillis = dateState.selectedDateMillis ?: System.currentTimeMillis()
 
     Column(
         modifier = Modifier
@@ -132,6 +136,15 @@ fun AddMealScreen(
 
         Spacer(Modifier.height(10.dp))
 
+        Text(
+            "Date: ${DateUtils.formatDate(selectedDateMillis)}",
+            style = MaterialTheme.typography.titleSmall,
+            color = green,
+            fontWeight = FontWeight.SemiBold
+        )
+
+        Spacer(Modifier.height(8.dp))
+
         DatePicker(
             state = dateState,
             colors = DatePickerDefaults.colors(
@@ -148,15 +161,11 @@ fun AddMealScreen(
         Button(
             onClick = {
                 if (name.isNotBlank() && calories.isNotBlank()) {
-
-                    val selectedDate =
-                        dateState.selectedDateMillis ?: System.currentTimeMillis()
-
                     viewModel.addMeal(
                         name = name,
                         calories = calories.toIntOrNull() ?: 0,
                         mealType = mealType,
-                        date = dateState.selectedDateMillis ?: System.currentTimeMillis() // ✅ 关键修复
+                        date = selectedDateMillis
                     )
 
                     navController.popBackStack()
