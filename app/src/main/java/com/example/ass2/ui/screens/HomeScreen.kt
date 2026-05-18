@@ -93,8 +93,8 @@ fun HomeScreen(
             navController.navigate("search")
         }
 
-        HomeButton("Reminder timer", green) {
-            navController.navigate("Reminder")
+        HomeButton("Daily meal reminder", green) {
+            navController.navigate("reminder")
         }
 
         HomeButton("Insights", green) {
