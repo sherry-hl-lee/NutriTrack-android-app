@@ -29,19 +29,27 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.ass2.ui.components.CaloriesBarChart
+import com.example.ass2.ui.components.DailyTargetAchievementChart
 import com.example.ass2.util.DateUtils
 import com.example.ass2.viewmodel.MealViewModel
+import com.example.ass2.viewmodel.TargetViewModel
 
 @Composable
 fun InsightsScreen(
     navController: NavController,
-    mealViewModel: MealViewModel
+    mealViewModel: MealViewModel,
+    targetViewModel: TargetViewModel
 ) {
     val meals by mealViewModel.meals.collectAsState(initial = emptyList())
+    val targetLogs by targetViewModel.recentLogs.collectAsState()
     val green = Color(0xFF4CAF50)
     val lightGreen = Color(0xFFE8F5E9)
+    val greenDark = Color(0xFF2E7D32)
 
     val dailyData = remember(meals) { DateUtils.caloriesPerDay(meals, 7) }
+    val targetDailyStatus = remember(targetLogs) { DateUtils.targetStatusPerDay(targetLogs, 7) }
+    val achievedDays = targetDailyStatus.count { it.achieved }
+    val todayTarget = targetDailyStatus.lastOrNull()
     val mealTypeTotals = remember(meals) { DateUtils.caloriesByMealType(meals) }
     val totalMeals = meals.size
     val totalCalories = meals.sumOf { it.calories }
@@ -65,12 +73,63 @@ fun InsightsScreen(
         Spacer(Modifier.height(8.dp))
 
         Text(
-            "Your meal data over the last 7 days",
+            "Meals & daily habits over the last 7 days",
             style = MaterialTheme.typography.bodySmall,
             color = Color.Gray
         )
 
         Spacer(Modifier.height(16.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(4.dp)
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Text(
+                    "Daily target achievements",
+                    fontWeight = FontWeight.Bold,
+                    color = green
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "$achievedDays / 7 days goal completed",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+                Spacer(Modifier.height(12.dp))
+                DailyTargetAchievementChart(
+                    dailyStatus = targetDailyStatus,
+                    achievedColor = green
+                )
+                todayTarget?.let { today ->
+                    Spacer(Modifier.height(12.dp))
+                    if (today.achieved) {
+                        Text(
+                            "🎉 Today's target completed! (${today.earnedPoints}/${today.totalPoints} pts)",
+                            color = greenDark,
+                            fontWeight = FontWeight.SemiBold,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    } else if (today.earnedPoints > 0) {
+                        Text(
+                            "Today: ${today.earnedPoints}/${today.totalPoints} pts — keep going!",
+                            color = Color.Gray,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    } else {
+                        Text(
+                            "Today: complete habits on the Target tab to earn points.",
+                            color = Color.Gray,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
 
         if (meals.isEmpty()) {
             Card(

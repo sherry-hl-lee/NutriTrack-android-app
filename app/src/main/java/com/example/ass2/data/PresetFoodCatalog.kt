@@ -28,6 +28,20 @@ object PresetFoodCatalog {
         PresetFood("Spaghetti pasta", 350, "Dinner"),
         PresetFood("Beef steak (100g)", 250, "Dinner"),
         PresetFood("Pizza slice", 285, "Dinner"),
-        PresetFood("Broccoli (1 cup)", 55, "Dinner")
+        PresetFood("Broccoli (1 cup)", 55, "Dinner"),
+        // High calorie options
+        PresetFood("Cheeseburger", 650, "Lunch"),
+        PresetFood("Bacon cheeseburger", 780, "Lunch"),
+        PresetFood("French fries (large)", 520, "Lunch"),
+        PresetFood("Fried chicken (3 pcs)", 580, "Dinner"),
+        PresetFood("Mac and cheese", 610, "Dinner"),
+        PresetFood("Pepperoni pizza (2 slices)", 570, "Dinner"),
+        PresetFood("Fried rice (large)", 550, "Lunch"),
+        PresetFood("Ramen bowl", 600, "Dinner"),
+        PresetFood("Nachos with cheese", 720, "Lunch"),
+        PresetFood("Chocolate cake slice", 550, "Dinner"),
+        PresetFood("Chocolate shake", 580, "Lunch"),
+        PresetFood("Bubble milk tea (large)", 520, "Lunch"),
+        PresetFood("Ice cream sundae", 540, "Dinner")
     )
 }
