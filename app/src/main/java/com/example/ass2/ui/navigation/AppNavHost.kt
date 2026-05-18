@@ -6,7 +6,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.*
+import androidx.navigation.navArgument
 import com.example.ass2.data.local.AppDatabase
 import com.example.ass2.data.repository.MealRepository
 import com.example.ass2.data.repository.TargetRepository
@@ -77,8 +79,16 @@ fun AppNavHost() {
 
         composable("history") {
             MainLayout(navController, userViewModel) {
-                HistoryScreen(mealViewModel)
+                HistoryScreen(navController, mealViewModel)
             }
+        }
+
+        composable(
+            route = "meals_day/{dayStart}",
+            arguments = listOf(navArgument("dayStart") { type = NavType.LongType })
+        ) { entry ->
+            val dayStart = entry.arguments?.getLong("dayStart") ?: 0L
+            MealDayDetailScreen(navController, mealViewModel, dayStart)
         }
 
         composable("profile") {
