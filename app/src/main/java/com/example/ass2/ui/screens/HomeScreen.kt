@@ -8,14 +8,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -36,6 +41,8 @@ fun HomeScreen(
     val meals by mealViewModel.meals.collectAsState(initial = emptyList())
     val totalCalories = meals.sumOf { it.calories }
     val target by userViewModel.targetCalories.collectAsState()
+    val isGuest by userViewModel.isGuest.collectAsState()
+    var showLoginRequiredDialog by remember { mutableStateOf(false) }
 
     val green = Color(0xFF4CAF50)
     val lightGreen = Color(0xFFE8F5E9)
@@ -86,7 +93,11 @@ fun HomeScreen(
         Spacer(Modifier.height(20.dp))
 
         HomeButton("Add Meal", green) {
-            navController.navigate("add")
+            if (isGuest) {
+                showLoginRequiredDialog = true
+            } else {
+                navController.navigate("add")
+            }
         }
 
         HomeButton("Search Food", green) {
@@ -104,6 +115,33 @@ fun HomeScreen(
         HomeButton("Registered Users", green) {
             navController.navigate("users")
         }
+    }
+
+    if (showLoginRequiredDialog) {
+        AlertDialog(
+            onDismissRequest = { showLoginRequiredDialog = false },
+            title = { Text("Login required") },
+            text = {
+                Text("Please register or log in to use this feature.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLoginRequiredDialog = false
+                        navController.navigate("login") {
+                            popUpTo("home") { inclusive = true }
+                        }
+                    }
+                ) {
+                    Text("Log in", color = green)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLoginRequiredDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 

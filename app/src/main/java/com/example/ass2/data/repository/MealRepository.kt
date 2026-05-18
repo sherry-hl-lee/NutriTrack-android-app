@@ -6,7 +6,8 @@ import kotlinx.coroutines.flow.Flow
 
 class MealRepository(private val dao: MealDao) {
 
-    fun getAllMeals(): Flow<List<Meal>> = dao.getAllMeals()
+    fun getMealsByUserEmail(userEmail: String): Flow<List<Meal>> =
+        dao.getMealsByUserEmail(userEmail)
 
     suspend fun insertMeal(meal: Meal) {
         dao.insertMeal(meal)
