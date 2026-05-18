@@ -4,6 +4,7 @@ import UserRepository
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.ass2.data.local.User
+import com.example.ass2.util.ProfileHealthCalculator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -60,7 +61,9 @@ fun login(email: String, password: String, onResult: (LoginResult) -> Unit) {
         _isGuest.value = false
         _currentUser.value = user
         _weight.value = user.weight
-        _targetCalories.value = if (user.weight > 0f) (user.weight * 30).toInt() else 2000
+        _targetCalories.value = ProfileHealthCalculator
+            .calculate(user.weight, user.height, user.age, user.gender)
+            ?.recommendedDailyCalories ?: 2000
     }
 
     /** User has completed body profile in Room (used to open My Profile vs edit form). */
@@ -86,7 +89,9 @@ fun login(email: String, password: String, onResult: (LoginResult) -> Unit) {
 
             // ✅ 更新本地状态（你原本的逻辑）
             _weight.value = weight
-            _targetCalories.value = (weight * 30).toInt()
+            _targetCalories.value = ProfileHealthCalculator
+                .calculate(weight, height, age, gender)
+                ?.recommendedDailyCalories ?: 2000
 
             // ✅ 更新数据库用户（新增部分）
             val user = _currentUser.value ?: return@launch

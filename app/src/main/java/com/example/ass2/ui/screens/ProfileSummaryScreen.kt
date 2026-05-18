@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -31,6 +33,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.ass2.ui.components.BmiChart
+import com.example.ass2.util.ProfileHealthCalculator
 import com.example.ass2.viewmodel.UserViewModel
 
 @Composable
@@ -52,7 +56,7 @@ fun ProfileSummaryScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(lightGreen)
-            .padding(16.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Text(
             "My Profile",
@@ -61,30 +65,76 @@ fun ProfileSummaryScreen(
             fontWeight = FontWeight.Bold
         )
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
 
-        if (currentUser == null) {
-            Text("No profile data. Please log in and save your profile.", color = Color.Gray)
-        } else {
-            val user = currentUser!!
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+        ) {
+            if (currentUser == null) {
+                Text("No profile data. Please log in and save your profile.", color = Color.Gray)
+            } else {
+                val user = currentUser!!
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(4.dp)
-            ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    ProfileInfoRow("Email", user.email)
-                    ProfileInfoRow("Weight", "${user.weight} kg")
-                    ProfileInfoRow("Height", "${user.height} cm")
-                    ProfileInfoRow("Age", user.age.toString())
-                    ProfileInfoRow("Gender", user.gender.ifBlank { "-" })
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(4.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        ProfileInfoRow("Email", user.email)
+                        ProfileInfoRow("Weight", "${user.weight} kg")
+                        ProfileInfoRow("Height", "${user.height} cm")
+                        ProfileInfoRow("Age", user.age.toString())
+                        ProfileInfoRow("Gender", user.gender.ifBlank { "-" }, isLast = true)
+                    }
+                }
+
+                val health = ProfileHealthCalculator.calculate(
+                    weightKg = user.weight,
+                    heightCm = user.height,
+                    age = user.age,
+                    gender = user.gender
+                )
+
+                if (health != null) {
+                    Spacer(Modifier.height(12.dp))
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(4.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                "Health Summary",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = green,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+
+                            BmiChart(
+                                bmi = health.bmi,
+                                weightStatus = health.weightStatus,
+                                modifier = Modifier.padding(bottom = 12.dp)
+                            )
+
+                            ProfileInfoRow(
+                                "Recommended daily intake",
+                                "${health.recommendedDailyCalories} kcal",
+                                isLast = true
+                            )
+                        }
+                    }
                 }
             }
-        }
 
-        Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(12.dp))
+        }
 
         Button(
             onClick = {
@@ -94,20 +144,20 @@ fun ProfileSummaryScreen(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(50.dp),
+                .height(48.dp),
             shape = RoundedCornerShape(20.dp),
             colors = ButtonDefaults.buttonColors(containerColor = green)
         ) {
             Text("Edit Profile")
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(8.dp))
 
         OutlinedButton(
             onClick = { showLogoutDialog = true },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(50.dp),
+                .height(48.dp),
             shape = RoundedCornerShape(20.dp),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red)
         ) {
@@ -144,7 +194,11 @@ fun ProfileSummaryScreen(
 }
 
 @Composable
-private fun ProfileInfoRow(label: String, value: String) {
+private fun ProfileInfoRow(
+    label: String,
+    value: String,
+    isLast: Boolean = false
+) {
     val green = Color(0xFF4CAF50)
 
     Text(
@@ -157,6 +211,6 @@ private fun ProfileInfoRow(label: String, value: String) {
         style = MaterialTheme.typography.titleMedium,
         fontWeight = FontWeight.SemiBold,
         color = green,
-        modifier = Modifier.padding(bottom = 12.dp)
+        modifier = Modifier.padding(bottom = if (isLast) 0.dp else 8.dp)
     )
 }

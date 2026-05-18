@@ -39,6 +39,11 @@ fun AppNavHost() {
         }
     )
 
+    val currentUser by userViewModel.currentUser.collectAsState()
+    LaunchedEffect(currentUser) {
+        mealViewModel.setLoggedInUserEmail(currentUser?.email)
+    }
+
     NavHost(navController = navController, startDestination = "login") {
 
         composable("login") {
@@ -82,7 +87,7 @@ fun AppNavHost() {
         }
 
         composable ("search"){
-            SearchScreen(navController, mealViewModel)
+            SearchScreen(navController, mealViewModel, userViewModel)
         }
 
         composable("users") {
@@ -93,6 +98,10 @@ fun AppNavHost() {
             MainLayout(navController, userViewModel){
                 TargetScreen(navController)
             }
+        }
+
+        composable("insights") {
+            InsightsScreen(navController, mealViewModel)
         }
     }
 }
