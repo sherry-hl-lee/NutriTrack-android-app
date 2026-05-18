@@ -1,5 +1,6 @@
 package com.example.ass2.util
 
+import com.example.ass2.data.local.DailyTargetLog
 import com.example.ass2.data.local.Meal
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -69,4 +70,34 @@ object DateUtils {
 
     fun caloriesByMealType(meals: List<Meal>): Map<String, Int> =
         meals.groupBy { it.mealType }.mapValues { (_, list) -> list.sumOf { it.calories } }
+
+    data class DayTargetStatus(
+        val dayStart: Long,
+        val label: String,
+        val achieved: Boolean,
+        val earnedPoints: Int,
+        val totalPoints: Int
+    )
+
+    fun targetStatusPerDay(logs: List<DailyTargetLog>, dayCount: Int = 7): List<DayTargetStatus> {
+        val logByDay = logs.associateBy { it.dayStart }
+        val cal = Calendar.getInstance()
+        return (dayCount - 1 downTo 0).map { daysAgo ->
+            cal.timeInMillis = System.currentTimeMillis()
+            cal.set(Calendar.HOUR_OF_DAY, 0)
+            cal.set(Calendar.MINUTE, 0)
+            cal.set(Calendar.SECOND, 0)
+            cal.set(Calendar.MILLISECOND, 0)
+            cal.add(Calendar.DAY_OF_YEAR, -daysAgo)
+            val dayStart = cal.timeInMillis
+            val log = logByDay[dayStart]
+            DayTargetStatus(
+                dayStart = dayStart,
+                label = formatChartLabel(dayStart),
+                achieved = log?.isGoalAchieved == true,
+                earnedPoints = log?.earnedPoints ?: 0,
+                totalPoints = log?.totalPoints ?: 0
+            )
+        }
+    }
 }

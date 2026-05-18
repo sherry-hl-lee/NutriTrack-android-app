@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.*
 import com.example.ass2.data.local.AppDatabase
 import com.example.ass2.data.repository.MealRepository
+import com.example.ass2.data.repository.TargetRepository
 
 import com.example.ass2.ui.screens.*
 import com.example.ass2.viewmodel.*
@@ -39,9 +40,19 @@ fun AppNavHost() {
         }
     )
 
+    val targetViewModel: TargetViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return TargetViewModel(TargetRepository(db.dailyTargetDao())) as T
+            }
+        }
+    )
+
     val currentUser by userViewModel.currentUser.collectAsState()
     LaunchedEffect(currentUser) {
-        mealViewModel.setLoggedInUserEmail(currentUser?.email)
+        val email = currentUser?.email
+        mealViewModel.setLoggedInUserEmail(email)
+        targetViewModel.setUserEmail(email)
     }
 
     NavHost(navController = navController, startDestination = "login") {
@@ -96,12 +107,12 @@ fun AppNavHost() {
 
         composable("target") {
             MainLayout(navController, userViewModel){
-                TargetScreen(navController)
+                TargetScreen(navController, targetViewModel)
             }
         }
 
         composable("insights") {
-            InsightsScreen(navController, mealViewModel)
+            InsightsScreen(navController, mealViewModel, targetViewModel)
         }
     }
 }
