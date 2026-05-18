@@ -99,5 +99,9 @@ fun AppNavHost() {
                 TargetScreen(navController)
             }
         }
+
+        composable("insights") {
+            InsightsScreen(navController, mealViewModel)
+        }
     }
 }

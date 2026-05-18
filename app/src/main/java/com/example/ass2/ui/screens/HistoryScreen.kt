@@ -35,6 +35,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import com.example.ass2.util.DateUtils
 import com.example.ass2.viewmodel.MealViewModel
 @Composable
 fun HistoryScreen(
@@ -143,8 +144,13 @@ fun HistoryScreen(
                             }
 
                             Column {
-                                Text(meal.name, color = green)
-                                Text("${meal.calories} kcal", color = Color.Gray)
+                                Text(meal.name, color = green, fontWeight = FontWeight.SemiBold)
+                                Text("${meal.calories} kcal · ${meal.mealType}", color = Color.Gray)
+                                Text(
+                                    DateUtils.formatDateTime(meal.date),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.Gray
+                                )
                             }
                         }
 

@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.ass2.ui.components.HomeButton
+import com.example.ass2.util.DateUtils
 import com.example.ass2.viewmodel.MealViewModel
 import com.example.ass2.viewmodel.UserViewModel
 
@@ -39,7 +40,8 @@ fun HomeScreen(
 ) {
 
     val meals by mealViewModel.meals.collectAsState(initial = emptyList())
-    val totalCalories = meals.sumOf { it.calories }
+    val todayMeals = meals.filter { DateUtils.isToday(it.date) }
+    val totalCalories = todayMeals.sumOf { it.calories }
     val target by userViewModel.targetCalories.collectAsState()
     val isGuest by userViewModel.isGuest.collectAsState()
     var showLoginRequiredDialog by remember { mutableStateOf(false) }
@@ -70,7 +72,7 @@ fun HomeScreen(
         ) {
             Column(Modifier.padding(16.dp)) {
 
-                Text("Daily Calories", fontWeight = FontWeight.Bold)
+                Text("Today's Calories", fontWeight = FontWeight.Bold)
 
                 Spacer(Modifier.height(8.dp))
 
