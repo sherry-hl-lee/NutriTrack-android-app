@@ -67,7 +67,7 @@ fun AppNavHost() {
 
         composable("profile") {
             MainLayout(navController) {
-                ProfileScreen(userViewModel)
+                ProfileScreen(navController, userViewModel)
             }
         }
 
