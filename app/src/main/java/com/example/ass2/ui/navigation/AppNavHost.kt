@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.*
 import com.example.ass2.data.local.AppDatabase
 import com.example.ass2.data.repository.MealRepository
+import com.example.ass2.data.repository.TargetRepository
 
 import com.example.ass2.ui.screens.*
 import com.example.ass2.viewmodel.*
@@ -22,6 +23,7 @@ fun AppNavHost() {
     val db = AppDatabase.getDatabase(context)
     val mealRepo = MealRepository(db.mealDao())
     val userRepo = UserRepository(db.userDao())
+    val targetRepo = TargetRepository(db.dailyTargetDao())
 
     val mealViewModel: MealViewModel = viewModel(
         factory = object : ViewModelProvider.Factory {
@@ -38,6 +40,19 @@ fun AppNavHost() {
             }
         }
     )
+
+    val targetViewModel: TargetViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return TargetViewModel(targetRepo) as T
+            }
+        }
+    )
+
+    val currentUser by userViewModel.currentUser.collectAsState()
+    LaunchedEffect(currentUser?.email) {
+        targetViewModel.setUserEmail(currentUser?.email)
+    }
 
     NavHost(navController = navController, startDestination = "login") {
 
@@ -61,7 +76,7 @@ fun AppNavHost() {
 
         composable("history") {
             MainLayout(navController, userViewModel) {
-                HistoryScreen(mealViewModel)
+                HistoryScreen(navController, mealViewModel)
             }
         }
 
@@ -82,7 +97,7 @@ fun AppNavHost() {
         }
 
         composable ("search"){
-            SearchScreen(navController, mealViewModel)
+            SearchScreen(navController, mealViewModel, userViewModel)
         }
 
         composable("users") {
@@ -91,7 +106,7 @@ fun AppNavHost() {
 
         composable("target") {
             MainLayout(navController, userViewModel){
-                TargetScreen(navController)
+                TargetScreen(navController, targetViewModel)
             }
         }
     }
