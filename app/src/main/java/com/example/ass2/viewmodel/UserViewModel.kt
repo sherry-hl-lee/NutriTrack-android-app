@@ -31,6 +31,12 @@ class UserViewModel(
     private val _sessionReady = MutableStateFlow(false)
     val sessionReady: StateFlow<Boolean> = _sessionReady
 
+    private var googleSignOutHandler: (() -> Unit)? = null
+
+    fun setGoogleSignOutHandler(handler: () -> Unit) {
+        googleSignOutHandler = handler
+    }
+
     init {
         viewModelScope.launch {
             restoreSession()
@@ -84,6 +90,15 @@ fun login(email: String, password: String, onResult: (LoginResult) -> Unit) {
         onResult(result)
     }
 }
+
+    fun loginWithGoogle(email: String, onResult: (LoginResult) -> Unit) {
+        viewModelScope.launch {
+            val user = repo.getOrCreateGoogleUser(email)
+            setLoggedInUser(user)
+            onResult(LoginResult.Success(user))
+        }
+    }
+
     fun loginAsGuest() {
         _isGuest.value = true
         _currentUser.value = null
@@ -96,6 +111,7 @@ fun login(email: String, password: String, onResult: (LoginResult) -> Unit) {
         _weight.value = 0f
         _targetCalories.value = 2000
         sessionPrefs.clearSession()
+        googleSignOutHandler?.invoke()
     }
 
     private fun setLoggedInUser(user: User) {
@@ -186,5 +202,6 @@ fun login(email: String, password: String, onResult: (LoginResult) -> Unit) {
         data class Success(val user: User) : LoginResult()
         object UserNotFound : LoginResult()
         object WrongPassword : LoginResult()
+        object UseGoogleSignIn : LoginResult()
     }
 }

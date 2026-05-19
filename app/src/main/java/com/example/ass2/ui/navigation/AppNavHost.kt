@@ -15,6 +15,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
+import com.example.ass2.auth.GoogleAuthManager
 import com.example.ass2.data.local.AppDatabase
 import com.example.ass2.data.repository.MealRepository
 import com.example.ass2.data.repository.TargetRepository
@@ -26,7 +27,9 @@ import kotlinx.coroutines.delay
 import com.example.ass2.viewmodel.*
 
 @Composable
-fun AppNavHost() {
+fun AppNavHost(
+    googleAuthManager: GoogleAuthManager
+) {
 
     val navController = rememberNavController()
     val context = LocalContext.current
@@ -65,6 +68,10 @@ fun AppNavHost() {
     val sessionReady by userViewModel.sessionReady.collectAsState()
     val currentUser by userViewModel.currentUser.collectAsState()
     val isGuest by userViewModel.isGuest.collectAsState()
+
+    LaunchedEffect(Unit) {
+        userViewModel.setGoogleSignOutHandler { googleAuthManager.signOut() }
+    }
 
     LaunchedEffect(currentUser?.email) {
         val email = currentUser?.email
@@ -106,7 +113,33 @@ fun AppNavHost() {
     NavHost(navController = navController, startDestination = startDestination) {
 
         composable("login") {
-            LoginScreen(navController, userViewModel)
+            LoginScreen(
+                navController = navController,
+                userViewModel = userViewModel,
+                onGoogleSignInClick = {
+                    googleAuthManager.signIn { result ->
+                        when (result) {
+                            is GoogleAuthManager.GoogleSignInResult.Success -> {
+                                userViewModel.loginWithGoogle(result.email) { loginResult ->
+                                    if (loginResult is UserViewModel.LoginResult.Success) {
+                                        navController.navigate("home") {
+                                            popUpTo("login") { inclusive = true }
+                                        }
+                                    }
+                                }
+                            }
+                            is GoogleAuthManager.GoogleSignInResult.Failure -> {
+                                android.widget.Toast.makeText(
+                                    context,
+                                    result.message,
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                            GoogleAuthManager.GoogleSignInResult.Cancelled -> Unit
+                        }
+                    }
+                }
+            )
         }
 
         composable("signup") {
