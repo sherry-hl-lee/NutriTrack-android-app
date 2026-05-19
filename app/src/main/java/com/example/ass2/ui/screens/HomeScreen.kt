@@ -118,7 +118,7 @@ fun HomeScreen(
             if (isGuest) {
                 showLoginRequiredDialog = true
             } else {
-                navController.navigate("add")
+                navController.navigate("add_meal")
             }
         }
 

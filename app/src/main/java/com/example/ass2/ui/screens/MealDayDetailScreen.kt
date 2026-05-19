@@ -2,6 +2,7 @@ package com.example.ass2.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -65,6 +66,14 @@ fun MealDayDetailScreen(
             style = MaterialTheme.typography.bodySmall
         )
 
+        Spacer(Modifier.height(4.dp))
+
+        Text(
+            "Tap a meal to edit",
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.Gray
+        )
+
         Spacer(Modifier.height(8.dp))
 
         Card(
@@ -94,7 +103,11 @@ fun MealDayDetailScreen(
                         shape = RoundedCornerShape(18.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
                         elevation = CardDefaults.cardElevation(4.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                navController.navigate("add_meal?mealId=${meal.id}")
+                            }
                     ) {
                         Row(
                             modifier = Modifier
@@ -104,16 +117,29 @@ fun MealDayDetailScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(meal.name, color = green, fontWeight = FontWeight.SemiBold)
-                                Text("${meal.calories} kcal · ${meal.mealType}", color = Color.Gray)
+                                Text(
+                                    meal.name,
+                                    color = green,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    "${meal.calories} kcal · ${meal.mealType}",
+                                    color = Color.Gray
+                                )
                                 Text(
                                     DateUtils.formatDateTime(meal.date),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = Color.Gray
                                 )
                             }
-                            IconButton(onClick = { mealViewModel.deleteMeal(meal) }) {
-                                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red)
+                            IconButton(
+                                onClick = { mealViewModel.deleteMeal(meal) }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = Color.Red
+                                )
                             }
                         }
                     }
