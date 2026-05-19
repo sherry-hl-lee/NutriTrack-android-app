@@ -19,6 +19,7 @@ import com.example.ass2.data.local.AppDatabase
 import com.example.ass2.data.repository.MealRepository
 import com.example.ass2.data.repository.TargetRepository
 import com.example.ass2.reminder.ReminderPreferences
+import com.example.ass2.session.SessionPreferences
 import com.example.ass2.ui.components.MealReminderAlertDialog
 import com.example.ass2.ui.screens.*
 import kotlinx.coroutines.delay
@@ -43,10 +44,12 @@ fun AppNavHost() {
         }
     )
 
+    val sessionPrefs = remember { SessionPreferences(context) }
+
     val userViewModel: UserViewModel = viewModel(
         factory = object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return UserViewModel(userRepo) as T
+                return UserViewModel(userRepo, sessionPrefs) as T
             }
         }
     )
@@ -59,7 +62,10 @@ fun AppNavHost() {
         }
     )
 
+    val sessionReady by userViewModel.sessionReady.collectAsState()
     val currentUser by userViewModel.currentUser.collectAsState()
+    val isGuest by userViewModel.isGuest.collectAsState()
+
     LaunchedEffect(currentUser?.email) {
         val email = currentUser?.email
         mealViewModel.setLoggedInUserEmail(email)
@@ -89,8 +95,15 @@ fun AppNavHost() {
         }
     }
 
+    if (!sessionReady) {
+        Box(Modifier.fillMaxSize())
+        return
+    }
+
+    val startDestination = if (currentUser != null || isGuest) "home" else "login"
+
     Box(Modifier.fillMaxSize()) {
-    NavHost(navController = navController, startDestination = "login") {
+    NavHost(navController = navController, startDestination = startDestination) {
 
         composable("login") {
             LoginScreen(navController, userViewModel)

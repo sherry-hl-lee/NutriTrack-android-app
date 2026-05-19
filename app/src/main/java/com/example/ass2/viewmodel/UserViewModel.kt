@@ -4,6 +4,7 @@ import UserRepository
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.ass2.data.local.User
+import com.example.ass2.session.SessionPreferences
 import com.example.ass2.util.ProfileHealthCalculator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -12,7 +13,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class UserViewModel(
-    private val repo: UserRepository
+    private val repo: UserRepository,
+    private val sessionPrefs: SessionPreferences
 ) : ViewModel() {
     // 👤 当前用户（null = 未登录）
     private val _currentUser = MutableStateFlow<User?>(null)
@@ -25,6 +27,35 @@ class UserViewModel(
     val weight: StateFlow<Float> = _weight
     private val _targetCalories = MutableStateFlow(2000)
     val targetCalories: StateFlow<Int> = _targetCalories
+
+    private val _sessionReady = MutableStateFlow(false)
+    val sessionReady: StateFlow<Boolean> = _sessionReady
+
+    init {
+        viewModelScope.launch {
+            restoreSession()
+            _sessionReady.value = true
+        }
+    }
+
+    private suspend fun restoreSession() {
+        when {
+            sessionPrefs.isGuestSession() -> {
+                _isGuest.value = true
+                _currentUser.value = null
+            }
+            else -> {
+                val email = sessionPrefs.getSavedEmail() ?: return
+                val user = repo.findUserByEmail(email)
+                if (user != null) {
+                    setLoggedInUser(user)
+                } else {
+                    sessionPrefs.clearSession()
+                }
+            }
+        }
+    }
+
 fun signup(
     email: String,
     password: String,
@@ -56,6 +87,7 @@ fun login(email: String, password: String, onResult: (LoginResult) -> Unit) {
     fun loginAsGuest() {
         _isGuest.value = true
         _currentUser.value = null
+        sessionPrefs.saveGuestSession()
     }
 
     fun logout() {
@@ -63,6 +95,7 @@ fun login(email: String, password: String, onResult: (LoginResult) -> Unit) {
         _isGuest.value = false
         _weight.value = 0f
         _targetCalories.value = 2000
+        sessionPrefs.clearSession()
     }
 
     private fun setLoggedInUser(user: User) {
@@ -72,6 +105,7 @@ fun login(email: String, password: String, onResult: (LoginResult) -> Unit) {
         _targetCalories.value = ProfileHealthCalculator
             .calculate(user.weight, user.height, user.age, user.gender)
             ?.recommendedDailyCalories ?: 2000
+        sessionPrefs.saveUserSession(user.email)
     }
 
     /** User has completed body profile in Room (used to open My Profile vs edit form). */
