@@ -164,6 +164,12 @@ fun login(email: String, password: String, onResult: (LoginResult) -> Unit) {
         }
     }
 
+    fun verifyEmailExists(email: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            onResult(repo.findUserByEmail(email) != null)
+        }
+    }
+
     fun resetPassword(email: String, newPassword: String, onResult: (ResetPasswordResult) -> Unit) {
         viewModelScope.launch {
             val success = repo.resetPassword(email, newPassword)

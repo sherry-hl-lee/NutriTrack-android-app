@@ -51,6 +51,8 @@ fun ResetPasswordScreen(
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var isVerified by remember { mutableStateOf(false) }
+    var emailError by remember { mutableStateOf<String?>(null) }
+    var isVerifying by remember { mutableStateOf(false) }
     var newPasswordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
 
@@ -93,10 +95,22 @@ fun ResetPasswordScreen(
                 Column(modifier = Modifier.padding(24.dp)) {
                     OutlinedTextField(
                         value = email,
-                        onValueChange = { email = it },
+                        onValueChange = {
+                            email = it
+                            emailError = null
+                        },
                         label = { Text("Email") },
                         singleLine = true,
-                        enabled = !isVerified,
+                        enabled = !isVerified && !isVerifying,
+                        isError = emailError != null,
+                        supportingText = emailError?.let { message ->
+                            {
+                                Text(
+                                    text = message,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -105,20 +119,39 @@ fun ResetPasswordScreen(
                     Button(
                         onClick = {
                             if (email.isBlank()) {
-                                Toast.makeText(context, "Please enter your email", Toast.LENGTH_SHORT).show()
+                                emailError = "Please enter your email"
                                 return@Button
                             }
-                            isVerified = true
-                            Toast.makeText(context, "Email verified successfully", Toast.LENGTH_SHORT).show()
+                            isVerifying = true
+                            userViewModel.verifyEmailExists(email) { exists ->
+                                isVerifying = false
+                                if (exists) {
+                                    emailError = null
+                                    isVerified = true
+                                    Toast.makeText(
+                                        context,
+                                        "Email verified successfully",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                } else {
+                                    isVerified = false
+                                    emailError = "No account found for this email"
+                                    Toast.makeText(
+                                        context,
+                                        "Email not registered",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
                         },
-                        enabled = !isVerified,
+                        enabled = !isVerified && !isVerifying,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = green)
                     ) {
-                        Text("Verify")
+                        Text(if (isVerifying) "Verifying..." else "Verify")
                     }
 
                     if (isVerified) {
