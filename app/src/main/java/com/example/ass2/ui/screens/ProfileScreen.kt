@@ -35,6 +35,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.ass2.data.local.User
+import com.example.ass2.ui.components.ProfileMetricTextField
+import com.example.ass2.util.parseValidatedAge
+import com.example.ass2.util.parseValidatedHeight
+import com.example.ass2.util.parseValidatedWeight
+import com.example.ass2.util.validateAge
+import com.example.ass2.util.validateHeight
+import com.example.ass2.util.validateWeight
 import com.example.ass2.viewmodel.UserViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,6 +54,7 @@ fun ProfileScreen(
     val context = LocalContext.current
     val currentUser by userViewModel.currentUser.collectAsState()
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var showRequiredErrors by remember { mutableStateOf(false) }
 
     var weight by remember { mutableStateOf("") }
     var height by remember { mutableStateOf("") }
@@ -78,6 +86,10 @@ fun ProfileScreen(
         applyUserToForm(userViewModel.currentUser.value)
     }
 
+    val weightError = validateWeight(weight, required = showRequiredErrors)
+    val heightError = validateHeight(height, required = showRequiredErrors)
+    val ageError = validateAge(age, required = showRequiredErrors)
+
     val green = Color(0xFF4CAF50)
     val lightGreen = Color(0xFFE8F5E9)
 
@@ -96,32 +108,29 @@ fun ProfileScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        //  Weight
-        OutlinedTextField(
+        ProfileMetricTextField(
             value = weight,
             onValueChange = { weight = it },
-            label = { Text("Weight (kg)") },
-            modifier = Modifier.fillMaxWidth()
+            label = "Weight (kg)",
+            errorMessage = weightError
         )
 
         Spacer(Modifier.height(12.dp))
 
-        //  Height
-        OutlinedTextField(
+        ProfileMetricTextField(
             value = height,
             onValueChange = { height = it },
-            label = { Text("Height (cm)") },
-            modifier = Modifier.fillMaxWidth()
+            label = "Height (cm)",
+            errorMessage = heightError
         )
 
         Spacer(Modifier.height(12.dp))
 
-        //  Age
-        OutlinedTextField(
+        ProfileMetricTextField(
             value = age,
             onValueChange = { age = it },
-            label = { Text("Age") },
-            modifier = Modifier.fillMaxWidth()
+            label = "Age",
+            errorMessage = ageError
         )
 
         Spacer(Modifier.height(12.dp))
@@ -170,9 +179,9 @@ fun ProfileScreen(
                     return@Button
                 }
 
-                val w = weight.toFloatOrNull()
-                val h = height.toFloatOrNull()
-                val a = age.toIntOrNull()
+                val w = parseValidatedWeight(weight)
+                val h = parseValidatedHeight(height)
+                val a = parseValidatedAge(age)
 
                 if (w != null && h != null && a != null) {
                     userViewModel.updateUserProfile(
@@ -185,7 +194,8 @@ fun ProfileScreen(
                         navController.navigate("profile_summary")
                     }
                 } else {
-                    Toast.makeText(context, "Please fill all fields correctly", Toast.LENGTH_SHORT).show()
+                    showRequiredErrors = true
+                    Toast.makeText(context, "Please fix weight, height, and age", Toast.LENGTH_SHORT).show()
                 }
             },
             modifier = Modifier
