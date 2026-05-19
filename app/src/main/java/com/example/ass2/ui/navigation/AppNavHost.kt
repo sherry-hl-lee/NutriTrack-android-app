@@ -100,6 +100,10 @@ fun AppNavHost() {
             SignupScreen(navController, userViewModel)
         }
 
+        composable("reset_password") {
+            ResetPasswordScreen(navController, userViewModel)
+        }
+
         composable("home") {
             MainLayout(navController, userViewModel) {
                 HomeScreen(navController, mealViewModel, userViewModel)

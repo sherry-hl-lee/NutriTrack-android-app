@@ -36,4 +36,10 @@ class UserRepository(private val userDao: UserDao) {
     suspend fun updateUser(user: User) {
         userDao.updateUser(user)
     }
+
+    suspend fun resetPassword(email: String, newPassword: String): Boolean {
+        val user = userDao.findUserByEmail(email) ?: return false
+        userDao.updateUser(user.copy(password = newPassword))
+        return true
+    }
 }

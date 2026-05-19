@@ -121,6 +121,19 @@ fun login(email: String, password: String, onResult: (LoginResult) -> Unit) {
             repo.deleteUser(user)
         }
     }
+
+    fun resetPassword(email: String, newPassword: String, onResult: (ResetPasswordResult) -> Unit) {
+        viewModelScope.launch {
+            val success = repo.resetPassword(email, newPassword)
+            onResult(if (success) ResetPasswordResult.Success else ResetPasswordResult.UserNotFound)
+        }
+    }
+
+    sealed class ResetPasswordResult {
+        object Success : ResetPasswordResult()
+        object UserNotFound : ResetPasswordResult()
+    }
+
     sealed class LoginResult {
         data class Success(val user: User) : LoginResult()
         object UserNotFound : LoginResult()

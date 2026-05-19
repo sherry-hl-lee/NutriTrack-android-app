@@ -203,7 +203,7 @@ fun LoginScreen(
                     Spacer(Modifier.height(8.dp))
 
                     OutlinedButton(
-                        onClick = {},
+                        onClick = { navController.navigate("reset_password") },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
