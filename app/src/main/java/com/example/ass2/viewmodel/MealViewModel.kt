@@ -59,4 +59,16 @@ class MealViewModel(private val repository: MealRepository) : ViewModel() {
             repository.deleteMeal(meal)
         }
     }
+
+    suspend fun getMealById(id: Int): Meal? {
+        return repository.getMealById(id)
+    }
+    fun updateMeal(meal: Meal) {
+        val email = userEmail.value ?: return
+        if (meal.userEmail != email) return
+        viewModelScope.launch {
+            repository.updateMeal(meal)
+        }
+    }
+
 }

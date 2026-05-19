@@ -16,4 +16,11 @@ interface MealDao {
     // ✅ 删除（可选）
     @Delete
     suspend fun deleteMeal(meal: Meal)
+
+    @Update
+    suspend fun updateMeal(meal: Meal)
+
+    @Query("SELECT * FROM meals WHERE id = :id LIMIT 1")
+    suspend fun getMealById(id: Int): Meal?
+
 }

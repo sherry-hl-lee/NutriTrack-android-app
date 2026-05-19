@@ -16,4 +16,12 @@ class MealRepository(private val dao: MealDao) {
     suspend fun deleteMeal(meal: Meal) {
         dao.deleteMeal(meal)
     }
+
+    suspend fun updateMeal(meal: Meal){
+        dao.updateMeal(meal)
+    }
+
+    suspend fun getMealById(id: Int): Meal? {
+        return dao.getMealById(id)
+    }
 }
