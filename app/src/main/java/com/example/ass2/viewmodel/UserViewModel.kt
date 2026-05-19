@@ -25,9 +25,17 @@ class UserViewModel(
     val weight: StateFlow<Float> = _weight
     private val _targetCalories = MutableStateFlow(2000)
     val targetCalories: StateFlow<Int> = _targetCalories
-fun signup(email: String, password: String, onResult: (Boolean) -> Unit) {
+fun signup(
+    email: String,
+    password: String,
+    weight: Float,
+    height: Float,
+    age: Int,
+    gender: String,
+    onResult: (Boolean) -> Unit
+) {
     viewModelScope.launch {
-        val success = repo.signup(email, password)
+        val success = repo.signup(email, password, weight, height, age, gender)
 
         if (success) {
             _isGuest.value = false

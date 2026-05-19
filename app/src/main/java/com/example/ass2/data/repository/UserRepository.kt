@@ -5,11 +5,27 @@ import kotlinx.coroutines.flow.Flow
 
 class UserRepository(private val userDao: UserDao) {
 
-    suspend fun signup(email: String, password: String): Boolean {
+    suspend fun signup(
+        email: String,
+        password: String,
+        weight: Float,
+        height: Float,
+        age: Int,
+        gender: String
+    ): Boolean {
         val existing = userDao.findUserByEmail(email)
         if (existing != null) return false
 
-        userDao.insertUser(User(email = email, password = password))
+        userDao.insertUser(
+            User(
+                email = email,
+                password = password,
+                weight = weight,
+                height = height,
+                age = age,
+                gender = gender
+            )
+        )
         return true
     }
     suspend fun login(email: String, password: String): UserViewModel.LoginResult {
