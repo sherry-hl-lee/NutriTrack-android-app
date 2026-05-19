@@ -47,7 +47,8 @@ import com.example.ass2.viewmodel.UserViewModel
 @Composable
 fun LoginScreen(
     navController: NavController,
-    userViewModel: UserViewModel
+    userViewModel: UserViewModel,
+    onGoogleSignInClick: () -> Unit
 ) {
 
     var email by remember { mutableStateOf("") }
@@ -160,6 +161,13 @@ fun LoginScreen(
                                     is UserViewModel.LoginResult.WrongPassword -> {
                                         Toast.makeText(context, "Wrong password,Please try again", Toast.LENGTH_SHORT).show()
                                     }
+                                    is UserViewModel.LoginResult.UseGoogleSignIn -> {
+                                        Toast.makeText(
+                                            context,
+                                            "This account uses Google sign-in",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
                                 }
                             }
                         },
@@ -171,6 +179,19 @@ fun LoginScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = green)
                     ) {
                         Text("Login")
+                    }
+
+                    Spacer(Modifier.height(16.dp))
+
+                    OutlinedButton(
+                        onClick = onGoogleSignInClick,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, green)
+                    ) {
+                        Text("Sign in with Google", color = green)
                     }
 
                     Spacer(Modifier.height(16.dp))

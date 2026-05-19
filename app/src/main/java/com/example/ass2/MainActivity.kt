@@ -3,13 +3,20 @@ package com.example.ass2
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import com.example.ass2.auth.GoogleAuthManager
 import com.example.ass2.ui.navigation.AppNavHost
+
 class MainActivity : ComponentActivity() {
+
+    private lateinit var googleAuthManager: GoogleAuthManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        googleAuthManager = GoogleAuthManager(this)
+
         setContent {
-            AppNavHost()
+            AppNavHost(googleAuthManager = googleAuthManager)
         }
     }
 }

@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">ass2</string>
+    <!-- Replace with oauth_client client_id (client_type 3) from google-services.json -->
+    <string name="default_web_client_id">977535024809-h3did97q49d666st92gijn6pbqijmf60.apps.googleusercontent.com</string>
 </resources>
