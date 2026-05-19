@@ -145,8 +145,21 @@ fun AppNavHost() {
             }
         }
 
-        composable("add") {
-            AddMealScreen(navController, mealViewModel)
+        composable(
+            route = "add_meal?mealId={mealId}",
+            arguments = listOf(
+                navArgument("mealId") {
+                    type = NavType.IntType
+                    defaultValue = -1
+                }
+            )
+        ) { backStackEntry ->
+            val mealId = backStackEntry.arguments?.getInt("mealId") ?: -1
+            AddMealScreen(
+                navController = navController,
+                viewModel = mealViewModel,
+                mealId = mealId
+            )
         }
 
         composable ("search"){
