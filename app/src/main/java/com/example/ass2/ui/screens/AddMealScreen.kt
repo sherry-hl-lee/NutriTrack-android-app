@@ -49,8 +49,11 @@ import com.example.ass2.viewmodel.MealViewModel
 fun AddMealScreen(
     navController: NavController,
     viewModel: MealViewModel,
-    mealId: Int = -1
-) {
+    mealId: Int = -1,
+    prefilledName: String = "",
+    prefilledCalories: Int = -1,
+    prefilledMealType: String = ""
+){
     val isEditMode = mealId > 0
 
     var editingMeal by remember { mutableStateOf<Meal?>(null) }
@@ -102,10 +105,24 @@ fun AddMealScreen(
 
             else -> {
                 key(if (isEditMode) editingMeal?.id else -1) {
-                    var name by remember { mutableStateOf("") }
-                    var calories by remember { mutableStateOf("") }
+                    var name by remember(prefilledName, editingMeal?.id) {
+                        mutableStateOf(
+                            editingMeal?.name ?: prefilledName
+                        )
+                    }
+                    var calories by remember(prefilledCalories, editingMeal?.id) {
+                        mutableStateOf(
+                            editingMeal?.calories?.toString()
+                                ?: if (prefilledCalories >= 0) prefilledCalories.toString() else ""
+                        )
+                    }
                     var expanded by remember { mutableStateOf(false) }
-                    var mealType by remember { mutableStateOf("Breakfast") }
+                    var mealType by remember(prefilledMealType, editingMeal?.id) {
+                        mutableStateOf(
+                            editingMeal?.mealType
+                                ?: prefilledMealType.ifBlank { "Breakfast" }
+                        )
+                    }
 
                     val options = listOf("Breakfast", "Lunch", "Dinner")
 
