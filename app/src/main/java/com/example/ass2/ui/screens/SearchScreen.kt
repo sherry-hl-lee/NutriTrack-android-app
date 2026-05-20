@@ -373,7 +373,7 @@ fun SearchScreen(
                                         fontWeight = FontWeight.SemiBold
                                     )
                                     Text(
-                                        "${item.calories} kcal · ${item.mealType}",
+                                        "${item.calories} kcal",
                                         color = Color.Gray
                                     )
                                     Text(
