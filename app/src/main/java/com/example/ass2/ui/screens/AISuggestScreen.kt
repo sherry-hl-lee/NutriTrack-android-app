@@ -29,7 +29,6 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.ass2.viewmodel.AiSuggestUiState
 import com.example.ass2.viewmodel.AiSuggestViewModel
-import com.example.ass2.viewmodel.MealSuggestSource
 import com.example.ass2.viewmodel.MealViewModel
 import com.example.ass2.viewmodel.UserViewModel
 
@@ -56,7 +55,7 @@ fun AiSuggestScreen(
             .padding(16.dp)
     ) {
         Text(
-            "AI meal ideas",
+            "Daily nutrition feedback",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = green
@@ -65,35 +64,10 @@ fun AiSuggestScreen(
         Spacer(Modifier.height(8.dp))
 
         Text(
-            "Suggestions use your profile, calorie goal, and today’s logged meals.",
+            "Get a clear daily score and practical food suggestions based on your profile and today's meals.",
             style = MaterialTheme.typography.bodyMedium,
             color = Color.DarkGray
         )
-
-        Spacer(Modifier.height(12.dp))
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(4.dp)
-        ) {
-            Column(Modifier.padding(12.dp)) {
-                Text(
-                    "Setup (optional)",
-                    fontWeight = FontWeight.SemiBold,
-                    color = green
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    "For real AI text, create a key in Google AI Studio and add this line to local.properties:\n\n" +
-                            "GEMINI_API_KEY=your_key_here\n\n" +
-                            "Without a key, the app still shows offline ideas from your data.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.DarkGray
-                )
-            }
-        }
 
         Spacer(Modifier.height(16.dp))
 
@@ -112,7 +86,7 @@ fun AiSuggestScreen(
             colors = ButtonDefaults.buttonColors(containerColor = green),
             enabled = uiState !is AiSuggestUiState.Loading
         ) {
-            Text("Get suggestions")
+            Text("Generate score & feedback")
         }
 
         Spacer(Modifier.height(10.dp))
@@ -132,7 +106,7 @@ fun AiSuggestScreen(
         when (val s = uiState) {
             AiSuggestUiState.Idle -> {
                 Text(
-                    "Tap “Get suggestions” to generate ideas.",
+                    "Tap \"Generate score & feedback\" to view today's evaluation.",
                     color = Color.Gray,
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -158,22 +132,19 @@ fun AiSuggestScreen(
             }
 
             is AiSuggestUiState.Success -> {
-                val label = when (s.source) {
-                    MealSuggestSource.Gemini -> "Gemini"
-                    MealSuggestSource.Offline -> "Offline"
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(4.dp)
+                ) {
+                    Text(
+                        text = s.text,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color(0xFF1B5E20),
+                        modifier = Modifier.padding(12.dp)
+                    )
                 }
-                Text(
-                    "Source: $label",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = green,
-                    fontWeight = FontWeight.Medium
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    s.text,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Color(0xFF1B5E20)
-                )
             }
         }
     }
