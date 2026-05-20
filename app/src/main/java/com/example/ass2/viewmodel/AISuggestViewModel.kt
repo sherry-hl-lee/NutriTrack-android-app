@@ -62,7 +62,10 @@ class AiSuggestViewModel(
                     MealSuggestSource.Gemini
                 )
             } else {
-                val note = "(Could not reach Gemini — showing offline ideas instead.)\n\n"
+                val reason = aiResult.exceptionOrNull()?.message
+                    ?.takeIf { it.isNotBlank() }
+                    ?: "Unknown error"
+                val note = "(Could not reach Gemini: $reason — showing offline ideas instead.)\n\n"
                 val offline = LocalMealSuggestFallback.buildSuggestion(u, targetCalories, meals)
                 _uiState.value = AiSuggestUiState.Success(
                     note + offline,
