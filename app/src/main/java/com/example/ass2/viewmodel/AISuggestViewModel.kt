@@ -7,6 +7,8 @@ import com.example.ass2.data.local.User
 import com.example.ass2.data.remote.GeminiMealSuggestClient
 import com.example.ass2.util.DateUtils
 import com.example.ass2.util.LocalMealSuggestFallback
+import com.example.ass2.util.NutritionScoreRules
+import com.example.ass2.util.NutritionTargets
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -46,11 +48,28 @@ class AiSuggestViewModel(
 
         viewModelScope.launch {
             _uiState.value = AiSuggestUiState.Loading
+            val todayMeals = meals.filter { DateUtils.isToday(it.date) }
+            val targetProtein = NutritionTargets.recommendedProteinGrams(u.weight)
+            val scoreResult = NutritionScoreRules.compute(
+                dayStartMillis = DateUtils.startOfDay(System.currentTimeMillis()),
+                meals = todayMeals,
+                targetCalories = targetCalories,
+                targetProteinGrams = targetProtein
+            )
+            val scoreHeader = buildScoreHeader(
+                score = scoreResult.baseScore,
+                targetCalories = targetCalories,
+                targetProtein = targetProtein,
+                todayMeals = todayMeals
+            )
             val prompt = buildPrompt(u, targetCalories, meals)
 
             if (geminiApiKey.isBlank()) {
                 val offline = LocalMealSuggestFallback.buildSuggestion(u, targetCalories, meals)
-                _uiState.value = AiSuggestUiState.Success(offline, MealSuggestSource.Offline)
+                _uiState.value = AiSuggestUiState.Success(
+                    scoreHeader + "\n\n" + offline,
+                    MealSuggestSource.Offline
+                )
                 return@launch
             }
 
@@ -58,14 +77,17 @@ class AiSuggestViewModel(
             val aiResult = client.generateMealSuggestions(prompt)
             if (aiResult.isSuccess) {
                 _uiState.value = AiSuggestUiState.Success(
-                    aiResult.getOrThrow(),
+                    scoreHeader + "\n\n" + aiResult.getOrThrow(),
                     MealSuggestSource.Gemini
                 )
             } else {
-                val note = "(Could not reach Gemini — showing offline ideas instead.)\n\n"
+                val reason = aiResult.exceptionOrNull()?.message
+                    ?.takeIf { it.isNotBlank() }
+                    ?: "Unknown error"
+                val note = "(Could not reach Gemini: $reason — showing offline ideas instead.)\n\n"
                 val offline = LocalMealSuggestFallback.buildSuggestion(u, targetCalories, meals)
                 _uiState.value = AiSuggestUiState.Success(
-                    note + offline,
+                    scoreHeader + "\n\n" + note + offline,
                     MealSuggestSource.Offline
                 )
             }
@@ -80,21 +102,51 @@ class AiSuggestViewModel(
         val todayMeals = meals.filter { DateUtils.isToday(it.date) }
         val consumed = todayMeals.sumOf { it.calories }
         val remaining = (targetCalories - consumed).coerceAtLeast(0)
+        val targetProtein = NutritionTargets.recommendedProteinGrams(user.weight)
+        val consumedProtein = todayMeals.sumOf { it.proteinGrams }
         val mealLines = todayMeals.takeIf { it.isNotEmpty() }?.joinToString("\n") { m ->
-            "- ${m.mealType}: ${m.name} (${m.calories} kcal)"
+            "- ${m.mealType}: ${m.name} (${m.calories} kcal, ${m.proteinGrams} g protein)"
         } ?: "- (no meals logged yet today)"
 
         return """
-            You are a concise nutrition coach for a calorie-tracking app.
+            You are a concise nutrition coach for a calorie-tracking app. Reply in plain text (no markdown symbols like **).
             User profile: ${user.weight} kg, ${user.height} cm, age ${user.age}, gender ${user.gender}.
             Daily calorie target: $targetCalories kcal.
+            Daily protein target: $targetProtein g.
             Today's meals:
             $mealLines
             Approximate calories consumed today: $consumed kcal.
+            Approximate protein consumed today: $consumedProtein g.
             Approximate remaining budget for the rest of the day: $remaining kcal.
 
-            Give 3 to 5 practical meal or snack ideas (food names + rough kcal each) that fit the remaining budget.
-            Use short bullet points. No medical claims or diagnoses. Keep the answer under 180 words.
+            Output with this exact structure:
+            1) Quick summary (max 1 sentence).
+            2) Top 3 actionable tips as bullets.
+            3) Meal ideas section with 3 items, each item on one line:
+               - Name | kcal | protein(g) | why it fits today
+            Keep total under 170 words. No medical claims or diagnoses.
+        """.trimIndent()
+    }
+
+    private fun buildScoreHeader(
+        score: Int,
+        targetCalories: Int,
+        targetProtein: Int,
+        todayMeals: List<Meal>
+    ): String {
+        val consumedCalories = todayMeals.sumOf { it.calories }
+        val consumedProtein = todayMeals.sumOf { it.proteinGrams }
+        val remainingCalories = (targetCalories - consumedCalories).coerceAtLeast(0)
+        val grade = when {
+            score >= 85 -> "A"
+            score >= 70 -> "B"
+            score >= 55 -> "C"
+            else -> "D"
+        }
+        return """
+            Today Score: $score/100 (Grade $grade)
+            Calories: $consumedCalories / $targetCalories kcal (remaining $remainingCalories)
+            Protein: $consumedProtein / $targetProtein g
         """.trimIndent()
     }
 }

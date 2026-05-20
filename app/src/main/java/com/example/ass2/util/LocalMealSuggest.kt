@@ -13,22 +13,27 @@ object LocalMealSuggestFallback {
         val remaining = (targetCalories - consumed).coerceAtLeast(0)
 
         val lines = mutableListOf<String>()
-        lines += "• Today you logged about $consumed kcal (goal $targetCalories kcal)."
-        lines += "• Roughly $remaining kcal left for the rest of the day."
+        lines += "Quick summary: you've logged about $consumed kcal out of $targetCalories kcal today."
+        lines += "Remaining calorie budget: ~$remaining kcal."
         lines += ""
-        lines += "Ideas that usually fit a balanced day:"
+        lines += "Top 3 actionable tips:"
+        lines += "• Prioritize protein in your next meal."
+        lines += "• Keep one lighter option if dinner is expected to be heavier."
+        lines += "• Prefer water/unsweetened drinks with high-calorie meals."
+        lines += ""
+        lines += "Meal ideas (Name | kcal | protein(g) | why it fits):"
         if (remaining < 150) {
-            lines += "• Greek yogurt, a piece of fruit, or vegetable soup — keep it light."
+            lines += "• Greek yogurt + berries | ~150 | ~12 | light and protein-supportive when budget is low"
         } else {
             val fits = PresetFoodCatalog.foods
                 .filter { it.calories in 1..remaining }
                 .shuffled()
                 .take(4)
             if (fits.isEmpty()) {
-                lines += "• You are already at or above goal — consider water, tea, or extra vegetables."
+                lines += "• Vegetable soup | ~120 | ~4 | low-calorie option when close to goal"
             } else {
-                fits.forEach { food ->
-                    lines += "• ${food.name} (~${food.calories} kcal, ${food.mealType})"
+                fits.take(3).forEach { food ->
+                    lines += "• ${food.name} | ~${food.calories} | ~0 | fits remaining budget (${food.mealType})"
                 }
             }
         }
