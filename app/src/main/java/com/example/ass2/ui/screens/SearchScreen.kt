@@ -1,6 +1,6 @@
 package com.example.ass2.ui.screens
 
-import android.widget.Toast
+import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -12,12 +12,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -25,8 +22,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -35,7 +30,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -47,14 +41,10 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
 import com.example.ass2.data.PresetFoodCatalog
-import com.example.ass2.util.DateUtils
 import com.example.ass2.viewmodel.FoodSearchUiState
 import com.example.ass2.viewmodel.FoodViewModel
 import com.example.ass2.viewmodel.MealViewModel
@@ -77,7 +67,6 @@ fun SearchScreen(
     userViewModel: UserViewModel,
     foodViewModel: FoodViewModel
 ) {
-    val context = LocalContext.current
     val userMeals by mealViewModel.meals.collectAsState(initial = emptyList())
     val currentUser by userViewModel.currentUser.collectAsState()
     val isGuest by userViewModel.isGuest.collectAsState()
@@ -92,13 +81,7 @@ fun SearchScreen(
     var searchOnline by remember { mutableStateOf(false) }
 
     val apiSearchState by foodViewModel.searchState.collectAsState()
-    var showAddDialog by remember { mutableStateOf(false) }
     var showLoginRequiredDialog by remember { mutableStateOf(false) }
-    var itemToAdd by remember { mutableStateOf<FoodSearchItem?>(null) }
-
-    val addDateState = rememberDatePickerState(
-        initialSelectedDateMillis = System.currentTimeMillis()
-    )
 
     val green = Color(0xFF4CAF50)
     val lightGreen = Color(0xFFE8F5E9)
@@ -174,13 +157,17 @@ fun SearchScreen(
         matchQuery && matchType && matchCalories
     }
 
-    fun openAddDialog(item: FoodSearchItem) {
+    fun openAddMealScreen(item: FoodSearchItem) {
         if (!isLoggedIn) {
             showLoginRequiredDialog = true
             return
         }
-        itemToAdd = item
-        showAddDialog = true
+        navController.navigate(
+            "add_meal?mealId=-1" +
+                "&name=${Uri.encode(item.name)}" +
+                "&calories=${item.calories}" +
+                "&mealType=${Uri.encode(item.mealType)}"
+        )
     }
 
     Column(
@@ -202,7 +189,7 @@ fun SearchScreen(
             if (searchOnline) {
                 "Online search via USDA FoodData Central · Enter a food name"
             } else if (isLoggedIn) {
-                "Search preset foods or your meals · Tap Add Meal to save with a date"
+                "Search preset foods or your meals · Tap Add Meal to open the add meal page"
             } else {
                 "Preset foods for everyone · Log in to add meals"
             },
@@ -408,7 +395,7 @@ fun SearchScreen(
                             Spacer(Modifier.height(10.dp))
 
                             Button(
-                                onClick = { openAddDialog(item) },
+                                onClick = { openAddMealScreen(item) },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(44.dp),
@@ -437,119 +424,6 @@ fun SearchScreen(
             border = BorderStroke(1.dp, green)
         ) {
             Text("Back", color = green)
-        }
-    }
-
-    if (showAddDialog && itemToAdd != null) {
-        val item = itemToAdd!!
-        val selectedDate = addDateState.selectedDateMillis ?: System.currentTimeMillis()
-
-        Dialog(
-            onDismissRequest = {
-                showAddDialog = false
-                itemToAdd = null
-            },
-            properties = DialogProperties(usePlatformDefaultWidth = false)
-        ) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp)
-                    .wrapContentHeight(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(8.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp)
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    Text(
-                        "Add Meal",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = green
-                    )
-
-                    Spacer(Modifier.height(12.dp))
-
-                    Text(
-                        item.name,
-                        fontWeight = FontWeight.Bold,
-                        color = green,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Text(
-                        "${item.calories} kcal · ${item.mealType}",
-                        color = Color.Gray,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
-                    )
-
-                    Text(
-                        "Select date",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = green
-                    )
-                    Text(
-                        DateUtils.formatDate(selectedDate),
-                        color = Color.Gray,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-
-                    DatePicker(
-                        state = addDateState,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = DatePickerDefaults.colors(
-                            containerColor = Color.White,
-                            selectedDayContainerColor = green,
-                            selectedDayContentColor = Color.White,
-                            todayDateBorderColor = green,
-                            todayContentColor = green
-                        )
-                    )
-
-                    Spacer(Modifier.height(16.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        TextButton(onClick = {
-                            showAddDialog = false
-                            itemToAdd = null
-                        }) {
-                            Text("Cancel", color = Color.Gray)
-                        }
-                        Spacer(Modifier.width(8.dp))
-                        Button(
-                            onClick = {
-                                mealViewModel.addMeal(
-                                    name = item.name,
-                                    calories = item.calories,
-                                    mealType = item.mealType,
-                                    date = selectedDate
-                                )
-                                Toast.makeText(
-                                    context,
-                                    "${item.name} added for ${DateUtils.formatDate(selectedDate)}",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                showAddDialog = false
-                                itemToAdd = null
-                            },
-                            shape = RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = green)
-                        ) {
-                            Text("Add")
-                        }
-                    }
-                }
-            }
         }
     }
 
