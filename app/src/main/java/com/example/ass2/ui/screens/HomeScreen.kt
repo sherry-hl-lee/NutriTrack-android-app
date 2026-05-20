@@ -126,6 +126,14 @@ fun HomeScreen(
             navController.navigate("search")
         }
 
+        HomeButton("AI meal ideas", green) {
+            if (isGuest) {
+                showLoginRequiredDialog = true
+            } else {
+                navController.navigate("ai_suggest")
+            }
+        }
+
         HomeButton("Daily meal reminder", green) {
             navController.navigate("reminder")
         }

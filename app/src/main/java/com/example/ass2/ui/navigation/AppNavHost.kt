@@ -15,6 +15,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
+import com.example.ass2.BuildConfig
 import com.example.ass2.auth.GoogleAuthManager
 import com.example.ass2.data.local.AppDatabase
 import com.example.ass2.data.repository.MealRepository
@@ -66,6 +67,14 @@ fun AppNavHost(
     )
 
     val foodViewModel: FoodViewModel = viewModel()
+    val aiSuggestViewModel: AiSuggestViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return AiSuggestViewModel(BuildConfig.GEMINI_API_KEY) as T
+            }
+        }
+    )
 
     val sessionReady by userViewModel.sessionReady.collectAsState()
     val currentUser by userViewModel.currentUser.collectAsState()
@@ -112,135 +121,144 @@ fun AppNavHost(
     val startDestination = if (currentUser != null || isGuest) "home" else "login"
 
     Box(Modifier.fillMaxSize()) {
-    NavHost(navController = navController, startDestination = startDestination) {
+        NavHost(navController = navController, startDestination = startDestination) {
 
-        composable("login") {
-            LoginScreen(
-                navController = navController,
-                userViewModel = userViewModel,
-                onGoogleSignInClick = {
-                    googleAuthManager.signIn { result ->
-                        when (result) {
-                            is GoogleAuthManager.GoogleSignInResult.Success -> {
-                                userViewModel.loginWithGoogle(result.email) { loginResult ->
-                                    if (loginResult is UserViewModel.LoginResult.Success) {
-                                        navController.navigate("home") {
-                                            popUpTo("login") { inclusive = true }
+            composable("login") {
+                LoginScreen(
+                    navController = navController,
+                    userViewModel = userViewModel,
+                    onGoogleSignInClick = {
+                        googleAuthManager.signIn { result ->
+                            when (result) {
+                                is GoogleAuthManager.GoogleSignInResult.Success -> {
+                                    userViewModel.loginWithGoogle(result.email) { loginResult ->
+                                        if (loginResult is UserViewModel.LoginResult.Success) {
+                                            navController.navigate("home") {
+                                                popUpTo("login") { inclusive = true }
+                                            }
                                         }
                                     }
                                 }
+                                is GoogleAuthManager.GoogleSignInResult.Failure -> {
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        result.message,
+                                        android.widget.Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                                GoogleAuthManager.GoogleSignInResult.Cancelled -> Unit
                             }
-                            is GoogleAuthManager.GoogleSignInResult.Failure -> {
-                                android.widget.Toast.makeText(
-                                    context,
-                                    result.message,
-                                    android.widget.Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                            GoogleAuthManager.GoogleSignInResult.Cancelled -> Unit
                         }
                     }
+                )
+            }
+
+            composable("signup") {
+                SignupScreen(navController, userViewModel)
+            }
+
+            composable("reset_password") {
+                ResetPasswordScreen(navController, userViewModel)
+            }
+
+            composable("home") {
+                MainLayout(navController, userViewModel) {
+                    HomeScreen(navController, mealViewModel, userViewModel)
                 }
-            )
-        }
-
-        composable("signup") {
-            SignupScreen(navController, userViewModel)
-        }
-
-        composable("reset_password") {
-            ResetPasswordScreen(navController, userViewModel)
-        }
-
-        composable("home") {
-            MainLayout(navController, userViewModel) {
-                HomeScreen(navController, mealViewModel, userViewModel)
             }
-        }
 
-        composable ("reminder"){
-            ReminderScreen(navController)
-        }
-
-        composable("history") {
-            MainLayout(navController, userViewModel) {
-                HistoryScreen(navController, mealViewModel)
+            composable ("reminder"){
+                ReminderScreen(navController)
             }
-        }
 
-        composable("profile") {
-            MainLayout(navController, userViewModel) {
-                ProfileScreen(navController, userViewModel)
-            }
-        }
-
-        composable("profile_summary") {
-            MainLayout(navController, userViewModel) {
-                ProfileSummaryScreen(navController, userViewModel)
-            }
-        }
-
-        composable(
-            route = "add_meal?mealId={mealId}&name={name}&calories={calories}&mealType={mealType}",
-            arguments = listOf(
-                navArgument("mealId") {
-                    type = NavType.IntType
-                    defaultValue = -1
-                },
-                navArgument("name") {
-                    type = NavType.StringType
-                    defaultValue = ""
-                },
-                navArgument("calories") {
-                    type = NavType.IntType
-                    defaultValue = -1
-                },
-                navArgument("mealType") {
-                    type = NavType.StringType
-                    defaultValue = ""
+            composable("history") {
+                MainLayout(navController, userViewModel) {
+                    HistoryScreen(navController, mealViewModel)
                 }
-            )
-        ) { backStackEntry ->
-            val mealId = backStackEntry.arguments?.getInt("mealId") ?: -1
-            val name = backStackEntry.arguments?.getString("name").orEmpty()
-            val calories = backStackEntry.arguments?.getInt("calories") ?: -1
-            val mealType = backStackEntry.arguments?.getString("mealType").orEmpty()
+            }
 
-            AddMealScreen(
-                navController = navController,
-                viewModel = mealViewModel,
-                mealId = mealId,
-                prefilledName = name,
-                prefilledCalories = calories,
-                prefilledMealType = mealType
-            )
-        }
+            composable("profile") {
+                MainLayout(navController, userViewModel) {
+                    ProfileScreen(navController, userViewModel)
+                }
+            }
 
-        composable ("search"){
-            SearchScreen(navController, mealViewModel, userViewModel, foodViewModel)
-        }
+            composable("profile_summary") {
+                MainLayout(navController, userViewModel) {
+                    ProfileSummaryScreen(navController, userViewModel)
+                }
+            }
 
-        composable("users") {
-            UserListScreen(navController,userViewModel)
-        }
+            composable(
+                route = "add_meal?mealId={mealId}&name={name}&calories={calories}&mealType={mealType}",
+                arguments = listOf(
+                    navArgument("mealId") {
+                        type = NavType.IntType
+                        defaultValue = -1
+                    },
+                    navArgument("name") {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    },
+                    navArgument("calories") {
+                        type = NavType.IntType
+                        defaultValue = -1
+                    },
+                    navArgument("mealType") {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    }
+                )
+            ) { backStackEntry ->
+                val mealId = backStackEntry.arguments?.getInt("mealId") ?: -1
+                val name = backStackEntry.arguments?.getString("name").orEmpty()
+                val calories = backStackEntry.arguments?.getInt("calories") ?: -1
+                val mealType = backStackEntry.arguments?.getString("mealType").orEmpty()
 
-        composable("target") {
-            MainLayout(navController, userViewModel){
-                TargetScreen(navController, targetViewModel)
+                AddMealScreen(
+                    navController = navController,
+                    viewModel = mealViewModel,
+                    mealId = mealId,
+                    prefilledName = name,
+                    prefilledCalories = calories,
+                    prefilledMealType = mealType
+                )
+            }
+
+            composable ("search"){
+                SearchScreen(navController, mealViewModel, userViewModel, foodViewModel)
+            }
+
+            composable("ai_suggest") {
+                AiSuggestScreen(
+                    navController = navController,
+                    mealViewModel = mealViewModel,
+                    userViewModel = userViewModel,
+                    aiSuggestViewModel = aiSuggestViewModel
+                )
+            }
+
+            composable("users") {
+                UserListScreen(navController,userViewModel)
+            }
+
+            composable("target") {
+                MainLayout(navController, userViewModel){
+                    TargetScreen(navController, targetViewModel)
+                }
+            }
+            composable("insights") {
+                InsightsScreen(navController, mealViewModel, targetViewModel)
+            }
+
+            composable(
+                route = "meals_day/{dayStart}",
+                arguments = listOf(navArgument("dayStart") { type = NavType.LongType })
+            ) { backStackEntry ->
+                val dayStart = backStackEntry.arguments?.getLong("dayStart") ?: 0L
+                MealDayDetailScreen(navController, mealViewModel, dayStart)
             }
         }
-        composable("insights") {
-            InsightsScreen(navController, mealViewModel, targetViewModel)
-        }
-
-        composable(
-            route = "meals_day/{dayStart}",
-            arguments = listOf(navArgument("dayStart") { type = NavType.LongType })
-        ) { backStackEntry ->
-            val dayStart = backStackEntry.arguments?.getLong("dayStart") ?: 0L
-            MealDayDetailScreen(navController, mealViewModel, dayStart)
-        }
-    }
 
         if (showMealAlert) {
             MealReminderAlertDialog(
