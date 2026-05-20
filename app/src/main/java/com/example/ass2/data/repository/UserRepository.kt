@@ -16,27 +16,11 @@ class UserRepository(private val userDao: UserDao) {
         return requireNotNull(userDao.findUserByEmail(email))
     }
 
-    suspend fun signup(
-        email: String,
-        password: String,
-        weight: Float,
-        height: Float,
-        age: Int,
-        gender: String
-    ): Boolean {
+    suspend fun signup(email: String, password: String): Boolean {
         val existing = userDao.findUserByEmail(email)
         if (existing != null) return false
 
-        userDao.insertUser(
-            User(
-                email = email,
-                password = password,
-                weight = weight,
-                height = height,
-                age = age,
-                gender = gender
-            )
-        )
+        userDao.insertUser(User(email = email, password = password))
         return true
     }
     suspend fun login(email: String, password: String): UserViewModel.LoginResult {

@@ -62,17 +62,9 @@ class UserViewModel(
         }
     }
 
-fun signup(
-    email: String,
-    password: String,
-    weight: Float,
-    height: Float,
-    age: Int,
-    gender: String,
-    onResult: (Boolean) -> Unit
-) {
+fun signup(email: String, password: String, onResult: (Boolean) -> Unit) {
     viewModelScope.launch {
-        val success = repo.signup(email, password, weight, height, age, gender)
+        val success = repo.signup(email, password)
 
         if (success) {
             _isGuest.value = false
