@@ -181,19 +181,38 @@ fun AppNavHost(
         }
 
         composable(
-            route = "add_meal?mealId={mealId}",
+            route = "add_meal?mealId={mealId}&name={name}&calories={calories}&mealType={mealType}",
             arguments = listOf(
                 navArgument("mealId") {
                     type = NavType.IntType
                     defaultValue = -1
+                },
+                navArgument("name") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+                navArgument("calories") {
+                    type = NavType.IntType
+                    defaultValue = -1
+                },
+                navArgument("mealType") {
+                    type = NavType.StringType
+                    defaultValue = ""
                 }
             )
         ) { backStackEntry ->
             val mealId = backStackEntry.arguments?.getInt("mealId") ?: -1
+            val name = backStackEntry.arguments?.getString("name").orEmpty()
+            val calories = backStackEntry.arguments?.getInt("calories") ?: -1
+            val mealType = backStackEntry.arguments?.getString("mealType").orEmpty()
+
             AddMealScreen(
                 navController = navController,
                 viewModel = mealViewModel,
-                mealId = mealId
+                mealId = mealId,
+                prefilledName = name,
+                prefilledCalories = calories,
+                prefilledMealType = mealType
             )
         }
 
