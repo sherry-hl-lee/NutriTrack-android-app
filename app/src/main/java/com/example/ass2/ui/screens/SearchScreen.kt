@@ -37,11 +37,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -53,10 +55,12 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
 import com.example.ass2.data.PresetFoodCatalog
 import com.example.ass2.util.DateUtils
+import com.example.ass2.viewmodel.FoodSearchUiState
+import com.example.ass2.viewmodel.FoodViewModel
 import com.example.ass2.viewmodel.MealViewModel
 import com.example.ass2.viewmodel.UserViewModel
 
-enum class FoodSearchSource { Preset, MyFood }
+enum class FoodSearchSource { Preset, MyFood, Api }
 
 data class FoodSearchItem(
     val name: String,
@@ -70,7 +74,8 @@ data class FoodSearchItem(
 fun SearchScreen(
     navController: NavController,
     mealViewModel: MealViewModel,
-    userViewModel: UserViewModel
+    userViewModel: UserViewModel,
+    foodViewModel: FoodViewModel
 ) {
     val context = LocalContext.current
     val userMeals by mealViewModel.meals.collectAsState(initial = emptyList())
@@ -84,6 +89,9 @@ fun SearchScreen(
     var dinnerChecked by remember { mutableStateOf(false) }
     var lowCalorieOnly by remember { mutableStateOf(false) }
     var highCalorieOnly by remember { mutableStateOf(false) }
+    var searchOnline by remember { mutableStateOf(false) }
+
+    val apiSearchState by foodViewModel.searchState.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
     var showLoginRequiredDialog by remember { mutableStateOf(false) }
     var itemToAdd by remember { mutableStateOf<FoodSearchItem?>(null) }
@@ -125,11 +133,36 @@ fun SearchScreen(
         presets + myFoods
     }
 
-    val filteredItems = allItems.filter { item ->
+    val apiItems = remember(apiSearchState, searchOnline) {
+        if (!searchOnline) return@remember emptyList()
+        when (val state = apiSearchState) {
+            is FoodSearchUiState.Success -> state.foods.map { food ->
+                FoodSearchItem(
+                    name = food.name,
+                    calories = food.calories,
+                    mealType = "Lunch",
+                    source = FoodSearchSource.Api
+                )
+            }
+            else -> emptyList()
+        }
+    }
+
+    val displayItems = if (searchOnline) apiItems else allItems
+
+    LaunchedEffect(searchOnline, query) {
+        if (searchOnline) {
+            foodViewModel.searchOnline(query)
+        } else {
+            foodViewModel.clearOnlineSearch()
+        }
+    }
+
+    val filteredItems = displayItems.filter { item ->
         val matchQuery = query.isBlank() ||
             item.name.contains(query, ignoreCase = true)
 
-        val matchType =
+        val matchType = item.source == FoodSearchSource.Api ||
             selectedTypes.isEmpty() || selectedTypes.contains(item.mealType)
 
         val matchCalories = when {
@@ -166,7 +199,9 @@ fun SearchScreen(
         Spacer(Modifier.height(8.dp))
 
         Text(
-            if (isLoggedIn) {
+            if (searchOnline) {
+                "Online search via USDA FoodData Central · Enter a food name"
+            } else if (isLoggedIn) {
                 "Search preset foods or your meals · Tap Add Meal to save with a date"
             } else {
                 "Preset foods for everyone · Log in to add meals"
@@ -198,6 +233,22 @@ fun SearchScreen(
                 Text("Filter", fontWeight = FontWeight.Bold, color = green)
 
                 Spacer(Modifier.height(12.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Search online (USDA)")
+                    Switch(
+                        checked = searchOnline,
+                        onCheckedChange = { searchOnline = it },
+                        colors = SwitchDefaults.colors(checkedThumbColor = green)
+                    )
+                }
+
+                if (!searchOnline) {
+                Spacer(Modifier.height(4.dp))
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -262,10 +313,31 @@ fun SearchScreen(
                     )
                     Text("Dinner")
                 }
+                }
             }
         }
 
         Spacer(Modifier.height(16.dp))
+
+        if (searchOnline && apiSearchState is FoodSearchUiState.Loading) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CircularProgressIndicator(color = green, modifier = Modifier.padding(8.dp))
+                Text("Searching USDA…", color = Color.Gray)
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+
+        if (searchOnline && apiSearchState is FoodSearchUiState.Error) {
+            Text(
+                (apiSearchState as FoodSearchUiState.Error).message,
+                color = Color(0xFFC62828),
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
 
         Text(
             "Results: ${filteredItems.size}",
@@ -276,7 +348,11 @@ fun SearchScreen(
 
         if (filteredItems.isEmpty()) {
             Text(
-                "No results found",
+                when {
+                    searchOnline && query.isBlank() -> "Enter a food name to search online"
+                    searchOnline && apiSearchState is FoodSearchUiState.Loading -> "Searching…"
+                    else -> "No results found"
+                },
                 color = Color.Gray,
                 modifier = Modifier.padding(8.dp)
             )
@@ -317,12 +393,13 @@ fun SearchScreen(
                                         when (item.source) {
                                             FoodSearchSource.Preset -> "Preset"
                                             FoodSearchSource.MyFood -> "My food"
+                                            FoodSearchSource.Api -> "USDA online"
                                         },
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = if (item.source == FoodSearchSource.Preset) {
-                                            Color(0xFF2E7D32)
-                                        } else {
-                                            Color(0xFF1565C0)
+                                        color = when (item.source) {
+                                            FoodSearchSource.Preset -> Color(0xFF2E7D32)
+                                            FoodSearchSource.MyFood -> Color(0xFF1565C0)
+                                            FoodSearchSource.Api -> Color(0xFF6A1B9A)
                                         }
                                     )
                                 }

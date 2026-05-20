@@ -65,6 +65,8 @@ fun AppNavHost(
         }
     )
 
+    val foodViewModel: FoodViewModel = viewModel()
+
     val sessionReady by userViewModel.sessionReady.collectAsState()
     val currentUser by userViewModel.currentUser.collectAsState()
     val isGuest by userViewModel.isGuest.collectAsState()
@@ -196,7 +198,7 @@ fun AppNavHost(
         }
 
         composable ("search"){
-            SearchScreen(navController, mealViewModel, userViewModel)
+            SearchScreen(navController, mealViewModel, userViewModel, foodViewModel)
         }
 
         composable("users") {
