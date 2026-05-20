@@ -103,9 +103,9 @@ class AiSuggestViewModel(
         val consumed = todayMeals.sumOf { it.calories }
         val remaining = (targetCalories - consumed).coerceAtLeast(0)
         val targetProtein = NutritionTargets.recommendedProteinGrams(user.weight)
-        val consumedProtein = todayMeals.sumOf { it.proteinGrams }
+        val consumedProtein = NutritionTargets.estimateProteinFromCalories(consumed)
         val mealLines = todayMeals.takeIf { it.isNotEmpty() }?.joinToString("\n") { m ->
-            "- ${m.mealType}: ${m.name} (${m.calories} kcal, ${m.proteinGrams} g protein)"
+            "- ${m.mealType}: ${m.name} (${m.calories} kcal)"
         } ?: "- (no meals logged yet today)"
 
         return """
@@ -135,7 +135,7 @@ class AiSuggestViewModel(
         todayMeals: List<Meal>
     ): String {
         val consumedCalories = todayMeals.sumOf { it.calories }
-        val consumedProtein = todayMeals.sumOf { it.proteinGrams }
+        val consumedProtein = NutritionTargets.estimateProteinFromCalories(consumedCalories)
         val remainingCalories = (targetCalories - consumedCalories).coerceAtLeast(0)
         val grade = when {
             score >= 85 -> "A"
