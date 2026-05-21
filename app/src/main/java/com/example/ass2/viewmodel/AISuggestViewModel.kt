@@ -146,7 +146,6 @@ class AiSuggestViewModel(
         }
         return """
             Today Score: $score/100 (Grade $grade)
-            Calorie score: ${scoreResult.calorieScore}/100 | Protein score: ${scoreResult.proteinScore}/100
             Calories: $consumedCalories / $targetCalories kcal (remaining $remainingCalories)
             Protein: $consumedProtein / $targetProtein g (remaining $remainingProtein)
         """.trimIndent()
