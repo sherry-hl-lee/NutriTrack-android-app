@@ -2,61 +2,58 @@ package com.example.ass2.reminder
 
 import android.content.Context
 
+/** Lightweight prefs for in-app dialog after a notification (per user). */
 class ReminderPreferences(context: Context) {
 
     private val prefs =
         context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    val isActive: Boolean
-        get() = prefs.getBoolean(KEY_ACTIVE, false)
+    data class PendingAlert(val title: String, val body: String)
 
-    val hour: Int
-        get() = prefs.getInt(KEY_HOUR, 0)
-
-    val minute: Int
-        get() = prefs.getInt(KEY_MINUTE, 0)
-
-    fun saveReminder(hour: Int, minute: Int) {
+    fun setPendingAlert(userEmail: String, title: String, body: String) {
         prefs.edit()
-            .putBoolean(KEY_ACTIVE, true)
-            .putInt(KEY_HOUR, hour)
-            .putInt(KEY_MINUTE, minute)
+            .putString(keyPendingUser(), userEmail)
+            .putString(keyTitle(userEmail), title)
+            .putString(keyBody(userEmail), body)
             .apply()
     }
 
-    fun clearReminder() {
+    fun hasPendingMealAlert(userEmail: String?): Boolean {
+        if (userEmail.isNullOrBlank()) return false
+        return prefs.getString(keyPendingUser(), null) == userEmail &&
+            prefs.getString(keyTitle(userEmail), null) != null
+    }
+
+    fun peekPendingAlert(userEmail: String?): PendingAlert? {
+        if (userEmail.isNullOrBlank()) return null
+        if (prefs.getString(keyPendingUser(), null) != userEmail) return null
+        val title = prefs.getString(keyTitle(userEmail), null) ?: return null
+        val body = prefs.getString(keyBody(userEmail), null) ?: return null
+        return PendingAlert(title, body)
+    }
+
+    fun consumePendingMealAlert(userEmail: String?): PendingAlert? {
+        val alert = peekPendingAlert(userEmail) ?: return null
+        clearPendingAlert(userEmail)
+        return alert
+    }
+
+    fun clearPendingAlert(userEmail: String?) {
+        if (userEmail.isNullOrBlank()) return
         prefs.edit()
-            .remove(KEY_ACTIVE)
-            .remove(KEY_HOUR)
-            .remove(KEY_MINUTE)
-            .remove(KEY_PENDING_ALERT)
+            .remove(keyTitle(userEmail))
+            .remove(keyBody(userEmail))
             .apply()
-    }
-
-    fun setPendingMealAlert(pending: Boolean) {
-        prefs.edit().putBoolean(KEY_PENDING_ALERT, pending).apply()
-    }
-
-    fun hasPendingMealAlert(): Boolean =
-        prefs.getBoolean(KEY_PENDING_ALERT, false)
-
-    fun clearPendingMealAlert() {
-        prefs.edit().remove(KEY_PENDING_ALERT).apply()
-    }
-
-    fun consumePendingMealAlert(): Boolean {
-        val pending = hasPendingMealAlert()
-        if (pending) {
-            clearPendingMealAlert()
+        if (prefs.getString(keyPendingUser(), null) == userEmail) {
+            prefs.edit().remove(keyPendingUser()).apply()
         }
-        return pending
     }
+
+    private fun keyPendingUser() = "pending_user"
+    private fun keyTitle(email: String) = "pending_title_$email"
+    private fun keyBody(email: String) = "pending_body_$email"
 
     companion object {
         private const val PREFS_NAME = "nutritrack_reminder"
-        private const val KEY_ACTIVE = "active"
-        private const val KEY_HOUR = "hour"
-        private const val KEY_MINUTE = "minute"
-        private const val KEY_PENDING_ALERT = "pending_meal_alert"
     }
 }

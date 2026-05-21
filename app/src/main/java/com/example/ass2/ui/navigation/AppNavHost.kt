@@ -19,6 +19,7 @@ import com.example.ass2.BuildConfig
 import com.example.ass2.auth.GoogleAuthManager
 import com.example.ass2.data.local.AppDatabase
 import com.example.ass2.data.repository.MealRepository
+import com.example.ass2.data.repository.ReminderRepository
 import com.example.ass2.data.repository.TargetRepository
 import com.example.ass2.reminder.ReminderPreferences
 import com.example.ass2.session.SessionPreferences
@@ -39,6 +40,7 @@ fun AppNavHost(
     val mealRepo = MealRepository(db.mealDao())
     val userRepo = UserRepository(db.userDao())
     val targetRepo = TargetRepository(db.dailyTargetDao())
+    val reminderRepo = ReminderRepository(db.userReminderDao())
 
     val mealViewModel: MealViewModel = viewModel(
         factory = object : ViewModelProvider.Factory {
@@ -76,6 +78,15 @@ fun AppNavHost(
         }
     )
 
+    val reminderViewModel: ReminderViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return ReminderViewModel(reminderRepo) as T
+            }
+        }
+    )
+
     val sessionReady by userViewModel.sessionReady.collectAsState()
     val currentUser by userViewModel.currentUser.collectAsState()
     val isGuest by userViewModel.isGuest.collectAsState()
@@ -88,26 +99,44 @@ fun AppNavHost(
         val email = currentUser?.email
         mealViewModel.setLoggedInUserEmail(email)
         targetViewModel.setUserEmail(email)
+        reminderViewModel.setUserEmail(email)
+        if (email != null) {
+            reminderViewModel.rescheduleForCurrentUser(context)
+        }
     }
 
     val reminderPrefs = remember { ReminderPreferences(context) }
     var showMealAlert by remember { mutableStateOf(false) }
+    var alertTitle by remember { mutableStateOf("Reminder") }
+    var alertBody by remember { mutableStateOf("") }
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    DisposableEffect(lifecycleOwner) {
+    fun tryShowPendingDialog() {
+        val email = currentUser?.email ?: return
+        val pending = reminderPrefs.consumePendingMealAlert(email) ?: return
+        alertTitle = pending.title
+        alertBody = pending.body
+        showMealAlert = true
+    }
+
+    DisposableEffect(lifecycleOwner, currentUser?.email) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME && reminderPrefs.consumePendingMealAlert()) {
-                showMealAlert = true
+            if (event == Lifecycle.Event.ON_RESUME) {
+                tryShowPendingDialog()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(currentUser?.email) {
         while (true) {
             delay(1000)
-            if (reminderPrefs.hasPendingMealAlert()) {
+            val email = currentUser?.email
+            if (email != null && reminderPrefs.hasPendingMealAlert(email)) {
+                val pending = reminderPrefs.peekPendingAlert(email) ?: continue
+                alertTitle = pending.title
+                alertBody = pending.body
                 showMealAlert = true
             }
         }
@@ -167,8 +196,12 @@ fun AppNavHost(
                 }
             }
 
-            composable ("reminder"){
-                ReminderScreen(navController)
+            composable("reminder") {
+                ReminderScreen(
+                    navController = navController,
+                    reminderViewModel = reminderViewModel,
+                    userViewModel = userViewModel
+                )
             }
 
             composable("history") {
@@ -262,9 +295,11 @@ fun AppNavHost(
 
         if (showMealAlert) {
             MealReminderAlertDialog(
+                title = alertTitle,
+                message = alertBody,
                 onDismiss = {
                     showMealAlert = false
-                    reminderPrefs.clearPendingMealAlert()
+                    reminderPrefs.clearPendingAlert(currentUser?.email)
                 }
             )
         }

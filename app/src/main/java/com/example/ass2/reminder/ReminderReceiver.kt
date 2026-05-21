@@ -12,33 +12,72 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.example.ass2.MainActivity
+import com.example.ass2.data.local.AppDatabase
+import com.example.ass2.data.repository.ReminderRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class ReminderReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent?) {
-        val prefs = ReminderPreferences(context)
-        if (!prefs.isActive) return
+        val reminderId = intent?.getLongExtra(EXTRA_REMINDER_ID, -1L) ?: -1L
+        if (reminderId <= 0L) return
 
-        prefs.setPendingMealAlert(true)
+        val pending = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                handleReminder(context.applicationContext, reminderId)
+            } finally {
+                pending.finish()
+            }
+        }
+    }
+
+    private suspend fun handleReminder(context: Context, reminderId: Long) {
+        val db = AppDatabase.getDatabase(context)
+        val repo = ReminderRepository(db.userReminderDao())
+        val reminder = repo.getById(reminderId) ?: return
+        if (!reminder.enabled) return
+
+        val type = ReminderType.fromId(reminder.type) ?: return
+        val prefs = ReminderPreferences(context)
+        prefs.setPendingAlert(
+            userEmail = reminder.userEmail,
+            title = type.dialogTitle,
+            body = type.dialogBody
+        )
+
         createChannel(context)
-        showNotification(context)
-        ReminderScheduler.schedule(context, prefs.hour, prefs.minute)
+        showNotification(
+            context = context,
+            reminderId = reminderId,
+            title = type.notificationTitle,
+            body = type.notificationBody
+        )
+
+        ReminderScheduler.schedule(context, reminder)
     }
 
     private fun createChannel(context: Context) {
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "NutriTrack meal alerts",
+            "NutriTrack reminders",
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
-            description = "Daily reminders to log meals and review your nutrition."
+            description = "Meal and hydration reminders."
             enableVibration(true)
         }
         context.getSystemService(NotificationManager::class.java)
             .createNotificationChannel(channel)
     }
 
-    private fun showNotification(context: Context) {
+    private fun showNotification(
+        context: Context,
+        reminderId: Long,
+        title: String,
+        body: String
+    ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val granted = ContextCompat.checkSelfPermission(
                 context,
@@ -49,18 +88,19 @@ class ReminderReceiver : BroadcastReceiver() {
 
         val openAppIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra(EXTRA_REMINDER_ID, reminderId)
         }
         val contentPendingIntent = PendingIntent.getActivity(
             context,
-            0,
+            reminderId.toInt(),
             openAppIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("Time to log your meal")
-            .setContentText("Open NutriTrack to add today's meal and check your calories.")
+            .setContentTitle(title)
+            .setContentText(body)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setAutoCancel(true)
@@ -68,14 +108,15 @@ class ReminderReceiver : BroadcastReceiver() {
             .build()
 
         try {
-            NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
+            NotificationManagerCompat.from(context)
+                .notify(notificationIdFor(reminderId), notification)
         } catch (_: SecurityException) {
-            // Notification permission not granted
         }
     }
 
     companion object {
-        const val CHANNEL_ID = "nutritrack_meal_reminder"
-        private const val NOTIFICATION_ID = 2001
+        const val EXTRA_REMINDER_ID = "extra_reminder_id"
+        const val CHANNEL_ID = "nutritrack_reminders"
+        private fun notificationIdFor(reminderId: Long): Int = (2000 + reminderId).toInt()
     }
 }
