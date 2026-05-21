@@ -16,13 +16,13 @@ class UserViewModel(
     private val repo: UserRepository,
     private val sessionPrefs: SessionPreferences
 ) : ViewModel() {
-    // 👤 当前用户（null = 未登录）
+    // Current user; null when not logged in
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser
-    // 👻 guest 模式
+    // Guest mode
     private val _isGuest = MutableStateFlow(false)
     val isGuest: StateFlow<Boolean> = _isGuest
-    // 🏋️ 用户信息
+    // User profile fields (weight, target calories)
     private val _weight = MutableStateFlow(0f)
     val weight: StateFlow<Float> = _weight
     private val _targetCalories = MutableStateFlow(2000)
@@ -137,13 +137,13 @@ fun login(email: String, password: String, onResult: (LoginResult) -> Unit) {
     ) {
         viewModelScope.launch {
 
-            // ✅ 更新本地状态（你原本的逻辑）
+            // Update in-memory state
             _weight.value = weight
             _targetCalories.value = ProfileHealthCalculator
                 .calculate(weight, height, age, gender)
                 ?.recommendedDailyCalories ?: 2000
 
-            // ✅ 更新数据库用户（新增部分）
+            // Persist user to Room
             val user = _currentUser.value ?: return@launch
 
             val updatedUser = user.copy(
