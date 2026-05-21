@@ -51,13 +51,12 @@ class AiSuggestViewModel(
             val todayMeals = meals.filter { DateUtils.isToday(it.date) }
             val targetProtein = NutritionTargets.recommendedProteinGrams(u.weight)
             val scoreResult = NutritionScoreRules.compute(
-                dayStartMillis = DateUtils.startOfDay(System.currentTimeMillis()),
                 meals = todayMeals,
                 targetCalories = targetCalories,
                 targetProteinGrams = targetProtein
             )
             val scoreHeader = buildScoreHeader(
-                score = scoreResult.baseScore,
+                scoreResult = scoreResult,
                 targetCalories = targetCalories,
                 targetProtein = targetProtein,
                 todayMeals = todayMeals
@@ -129,7 +128,7 @@ class AiSuggestViewModel(
     }
 
     private fun buildScoreHeader(
-        score: Int,
+        scoreResult: NutritionScoreRules.Result,
         targetCalories: Int,
         targetProtein: Int,
         todayMeals: List<Meal>
@@ -137,6 +136,8 @@ class AiSuggestViewModel(
         val consumedCalories = todayMeals.sumOf { it.calories }
         val consumedProtein = NutritionTargets.estimateProteinFromCalories(consumedCalories)
         val remainingCalories = (targetCalories - consumedCalories).coerceAtLeast(0)
+        val remainingProtein = (targetProtein - consumedProtein).coerceAtLeast(0)
+        val score = scoreResult.baseScore
         val grade = when {
             score >= 85 -> "A"
             score >= 70 -> "B"
@@ -145,8 +146,9 @@ class AiSuggestViewModel(
         }
         return """
             Today Score: $score/100 (Grade $grade)
+            Calorie score: ${scoreResult.calorieScore}/100 | Protein score: ${scoreResult.proteinScore}/100
             Calories: $consumedCalories / $targetCalories kcal (remaining $remainingCalories)
-            Protein: $consumedProtein / $targetProtein g
+            Protein: $consumedProtein / $targetProtein g (remaining $remainingProtein)
         """.trimIndent()
     }
 }
