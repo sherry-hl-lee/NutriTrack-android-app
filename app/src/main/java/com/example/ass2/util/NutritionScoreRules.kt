@@ -11,7 +11,13 @@ object NutritionScoreRules {
         targetCalories: Int,
         targetProteinGrams: Int
     ): Result {
+        if (meals.isEmpty()) {
+            return Result(baseScore = 0)
+        }
         val consumed = meals.sumOf { it.calories }
+        if (consumed <= 0) {
+            return Result(baseScore = 0)
+        }
         val ratio = if (targetCalories <= 0) 1f else consumed / targetCalories.toFloat()
         val calorieScore = when {
             ratio in 0.85f..1.10f -> 95
