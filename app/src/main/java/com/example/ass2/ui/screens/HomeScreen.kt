@@ -126,7 +126,7 @@ fun HomeScreen(
             navController.navigate("search")
         }
 
-        HomeButton("AI meal ideas", green) {
+        HomeButton("AI Meal Ideas", green) {
             if (isGuest) {
                 showLoginRequiredDialog = true
             } else {
@@ -134,7 +134,7 @@ fun HomeScreen(
             }
         }
 
-        HomeButton("Daily meal reminder", green) {
+        HomeButton("Meal & Hydration Reminders", green) {
             navController.navigate("reminder")
         }
 

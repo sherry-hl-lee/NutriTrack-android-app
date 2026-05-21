@@ -9,16 +9,16 @@ import androidx.compose.ui.graphics.Color
 
 @Composable
 fun MealReminderAlertDialog(
+    title: String,
+    message: String,
     onDismiss: () -> Unit
 ) {
     val green = Color(0xFF4CAF50)
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Time to log your meal") },
-        text = {
-            Text("Open NutriTrack to add today's meal and check your calories.")
-        },
+        title = { Text(title) },
+        text = { Text(message) },
         confirmButton = {
             Button(
                 onClick = onDismiss,
