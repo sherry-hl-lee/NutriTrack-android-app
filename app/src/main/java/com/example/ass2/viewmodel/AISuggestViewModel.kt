@@ -33,6 +33,9 @@ class AiSuggestViewModel(
     private val _uiState = MutableStateFlow<AiSuggestUiState>(AiSuggestUiState.Idle)
     val uiState: StateFlow<AiSuggestUiState> = _uiState.asStateFlow()
 
+    /** Email of the user whose in-flight or displayed suggestion belongs to this session. */
+    private var activeUserEmail: String? = null
+
     fun requestSuggestion(
         user: User?,
         meals: List<Meal>,
@@ -40,11 +43,15 @@ class AiSuggestViewModel(
     ) {
         val u = user
         if (u == null || u.weight <= 0f || u.height <= 0f || u.age <= 0) {
+            activeUserEmail = null
             _uiState.value = AiSuggestUiState.Error(
                 "Complete your profile (weight, height, age) for better suggestions."
             )
             return
         }
+
+        val requestEmail = u.email
+        activeUserEmail = requestEmail
 
         viewModelScope.launch {
             _uiState.value = AiSuggestUiState.Loading
@@ -65,7 +72,8 @@ class AiSuggestViewModel(
 
             if (geminiApiKey.isBlank()) {
                 val offline = LocalMealSuggestFallback.buildSuggestion(u, targetCalories, meals)
-                _uiState.value = AiSuggestUiState.Success(
+                publishSuccess(
+                    requestEmail,
                     scoreHeader + "\n\n" + offline,
                     MealSuggestSource.Offline
                 )
@@ -75,7 +83,8 @@ class AiSuggestViewModel(
             val client = GeminiMealSuggestClient(geminiApiKey)
             val aiResult = client.generateMealSuggestions(prompt)
             if (aiResult.isSuccess) {
-                _uiState.value = AiSuggestUiState.Success(
+                publishSuccess(
+                    requestEmail,
                     scoreHeader + "\n\n" + aiResult.getOrThrow(),
                     MealSuggestSource.Gemini
                 )
@@ -85,7 +94,8 @@ class AiSuggestViewModel(
                     ?: "Unknown error"
                 val note = "(Could not reach Gemini: $reason — showing offline ideas instead.)\n\n"
                 val offline = LocalMealSuggestFallback.buildSuggestion(u, targetCalories, meals)
-                _uiState.value = AiSuggestUiState.Success(
+                publishSuccess(
+                    requestEmail,
                     scoreHeader + "\n\n" + note + offline,
                     MealSuggestSource.Offline
                 )
@@ -94,7 +104,17 @@ class AiSuggestViewModel(
     }
 
     fun reset() {
+        activeUserEmail = null
         _uiState.value = AiSuggestUiState.Idle
+    }
+
+    private fun publishSuccess(
+        requestEmail: String,
+        text: String,
+        source: MealSuggestSource
+    ) {
+        if (activeUserEmail != requestEmail) return
+        _uiState.value = AiSuggestUiState.Success(text, source)
     }
 
     private fun buildPrompt(user: User, targetCalories: Int, meals: List<Meal>): String {

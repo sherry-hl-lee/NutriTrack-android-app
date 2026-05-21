@@ -102,6 +102,7 @@ fun AppNavHost(
         mealViewModel.setLoggedInUserEmail(email)
         targetViewModel.setUserEmail(email)
         reminderViewModel.setUserEmail(email)
+        aiSuggestViewModel.reset()
         if (email != null) {
             reminderViewModel.rescheduleForCurrentUser(context)
         }
