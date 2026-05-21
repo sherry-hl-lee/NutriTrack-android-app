@@ -180,7 +180,8 @@ fun SearchScreen(
         Text(
             "Search Food",
             style = MaterialTheme.typography.headlineMedium,
-            color = green
+            color = green,
+            fontWeight = FontWeight.Bold
         )
 
         Spacer(Modifier.height(8.dp))

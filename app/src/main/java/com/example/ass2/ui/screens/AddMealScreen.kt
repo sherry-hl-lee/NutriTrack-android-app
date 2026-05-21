@@ -150,7 +150,8 @@ fun AddMealScreen(
                         Text(
                             if (isEditMode) "Edit Meal" else "Add Meal",
                             style = MaterialTheme.typography.headlineMedium,
-                            color = green
+                            color = green,
+                            fontWeight = FontWeight.Bold
                         )
 
                         Spacer(Modifier.height(4.dp))

@@ -3,6 +3,8 @@ package com.example.ass2.ui.navigation
 import UserRepository
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -153,6 +155,7 @@ fun AppNavHost(
         NavHost(navController = navController, startDestination = startDestination) {
 
             composable("login") {
+                ScreenSafeArea {
                 LoginScreen(
                     navController = navController,
                     userViewModel = userViewModel,
@@ -180,14 +183,15 @@ fun AppNavHost(
                         }
                     }
                 )
+                }
             }
 
             composable("signup") {
-                SignupScreen(navController, userViewModel)
+                ScreenSafeArea { SignupScreen(navController, userViewModel) }
             }
 
             composable("reset_password") {
-                ResetPasswordScreen(navController, userViewModel)
+                ScreenSafeArea { ResetPasswordScreen(navController, userViewModel) }
             }
 
             composable("home") {
@@ -197,11 +201,13 @@ fun AppNavHost(
             }
 
             composable("reminder") {
+                ScreenSafeArea {
                 ReminderScreen(
                     navController = navController,
                     reminderViewModel = reminderViewModel,
                     userViewModel = userViewModel
                 )
+                }
             }
 
             composable("history") {
@@ -248,6 +254,7 @@ fun AppNavHost(
                 val calories = backStackEntry.arguments?.getInt("calories") ?: -1
                 val mealType = backStackEntry.arguments?.getString("mealType").orEmpty()
 
+                ScreenSafeArea {
                 AddMealScreen(
                     navController = navController,
                     viewModel = mealViewModel,
@@ -256,23 +263,28 @@ fun AppNavHost(
                     prefilledCalories = calories,
                     prefilledMealType = mealType
                 )
+                }
             }
 
             composable ("search"){
+                ScreenSafeArea {
                 SearchScreen(navController, mealViewModel, userViewModel, foodViewModel)
+                }
             }
 
             composable("ai_suggest") {
+                ScreenSafeArea {
                 AiSuggestScreen(
                     navController = navController,
                     mealViewModel = mealViewModel,
                     userViewModel = userViewModel,
                     aiSuggestViewModel = aiSuggestViewModel
                 )
+                }
             }
 
             composable("users") {
-                UserListScreen(navController,userViewModel)
+                ScreenSafeArea { UserListScreen(navController, userViewModel) }
             }
 
             composable("target") {
@@ -281,7 +293,9 @@ fun AppNavHost(
                 }
             }
             composable("insights") {
+                ScreenSafeArea {
                 InsightsScreen(navController, mealViewModel, targetViewModel)
+                }
             }
 
             composable(
@@ -289,7 +303,9 @@ fun AppNavHost(
                 arguments = listOf(navArgument("dayStart") { type = NavType.LongType })
             ) { backStackEntry ->
                 val dayStart = backStackEntry.arguments?.getLong("dayStart") ?: 0L
+                ScreenSafeArea {
                 MealDayDetailScreen(navController, mealViewModel, dayStart)
+                }
             }
         }
 
@@ -303,5 +319,17 @@ fun AppNavHost(
                 }
             )
         }
+    }
+}
+
+@Composable
+private fun ScreenSafeArea(content: @Composable () -> Unit) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .navigationBarsPadding()
+    ) {
+        content()
     }
 }

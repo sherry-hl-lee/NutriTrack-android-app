@@ -144,7 +144,10 @@ fun CaloriesPieChart(
             "Tap chart to view today's meals",
             style = MaterialTheme.typography.labelSmall,
             color = Color(0xFF66BB6A),
-            modifier = Modifier.padding(top = 8.dp)
+            modifier = Modifier.padding(
+                top = if (slices.isNotEmpty()) 12.dp else 28.dp,
+                bottom = 8.dp
+            )
         )
     }
 }
